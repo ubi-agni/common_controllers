@@ -35,8 +35,8 @@ orocos_component(controller_common src/controller_common.cpp)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 add_dependencies(controller_common ${PROJECT_NAME}_gencpp)
 
-orocos_component(lwr_test src/LWRtest.cpp)
-target_link_libraries(lwr_test ${orocos_kdl_LIBRARIES})
+#orocos_component(lwr_test src/LWRtest.cpp)
+#target_link_libraries(lwr_test ${orocos_kdl_LIBRARIES})
 
 #orocos_service(lwr_service src/lwr_service.cpp)
 #target_link_libraries(lwr_service ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
