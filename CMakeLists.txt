@@ -6,9 +6,11 @@ project(controller_common)
 find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   rtt_roscomm
+  rtt_rosclock
   geometry_msgs 
   std_msgs 
   message_generation
+  eigen_conversions
   )
 
 find_package(Eigen REQUIRED)
@@ -28,18 +30,12 @@ include_directories(${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
 # listed in the package.xml file
 
 include_directories(${USE_OROCOS_INCLUDE_DIRS} include)
-
+ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
-orocos_component(controller_common src/controller_common.cpp)
+orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/joint_limit_avoidance.cpp src/robot_mass_matrix.cpp)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 add_dependencies(controller_common ${PROJECT_NAME}_gencpp)
-
-#orocos_component(lwr_test src/LWRtest.cpp)
-#target_link_libraries(lwr_test ${orocos_kdl_LIBRARIES})
-
-#orocos_service(lwr_service src/lwr_service.cpp)
-#target_link_libraries(lwr_service ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###
 

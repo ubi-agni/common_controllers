@@ -9,7 +9,10 @@
 #include "controller_common/vector_concate.h"
 #include "controller_common/vector_split.h"
 #include "controller_common/cartesian_impedance.h"
-
+#include "cartesian_interpolator.h"
+#include "cartesian_trajectory_action.h"
+#include "joint_limit_avoidance.h"
+#include "robot_mass_matrix.h"
 
 typedef VectorConcate<2> VectorConcate2;
 typedef VectorConcate<3> VectorConcate3;
@@ -27,11 +30,15 @@ ORO_LIST_COMPONENT_TYPE(VectorSplit2)
 ORO_LIST_COMPONENT_TYPE(VectorSplit3)
 ORO_LIST_COMPONENT_TYPE(VectorSplit4)
 
-typedef CartesianImpedance<6, 1> CartesianImpedance6;
-typedef CartesianImpedance<7, 1> CartesianImpedance7;
+ORO_LIST_COMPONENT_TYPE(CartesianImpedance)
 
-ORO_LIST_COMPONENT_TYPE(CartesianImpedance6)
-ORO_LIST_COMPONENT_TYPE(CartesianImpedance7)
+ORO_LIST_COMPONENT_TYPE(CartesianInterpolator)
+
+ORO_LIST_COMPONENT_TYPE(CartesianTrajectoryAction)
+
+ORO_LIST_COMPONENT_TYPE(JointLimitAvoidance)
+
+ORO_LIST_COMPONENT_TYPE(RobotMassMatrix)
 
 ORO_CREATE_COMPONENT_LIBRARY()
 

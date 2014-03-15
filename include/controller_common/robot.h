@@ -13,27 +13,30 @@
 
 namespace controller_common
 {
-template<int N, int K>
 class Robot : public RTT::ServiceRequester
 {
 public:
   Robot(RTT::TaskContext *owner) :
-      RTT::ServiceRequester("robot", owner), inertia("inertia"), jacobian("jacobian"), fkin("fkin")
+      RTT::ServiceRequester("robot", owner), inertia("inertia"), jacobian("jacobian"), fkin("fkin"), dofs("dofs"), effectors("effectors")
   {
     this->addOperationCaller(inertia);
     this->addOperationCaller(jacobian);
     this->addOperationCaller(fkin);
+    this->addOperationCaller(dofs);
+    this->addOperationCaller(effectors);
   }
 
-  typedef Eigen::Matrix<double, K * 6, N> Jacobian;
-  typedef Eigen::Matrix<double, N, N> Inertia;
-  typedef Eigen::Matrix<double, N, 1> Joints;
+  typedef Eigen::MatrixXd Jacobian;
+  typedef Eigen::MatrixXd Inertia;
+  typedef Eigen::VectorXd Joints;
   typedef Eigen::Matrix<double, 4, 1> ToolMass;
   typedef Eigen::Matrix<double, 7, 1> Tool;
 
-  RTT::OperationCaller<void(Inertia &, const Joints &, const ToolMass[K])> inertia;
-  RTT::OperationCaller<void(Jacobian &, const Joints &, const Tool[K])> jacobian;
-  RTT::OperationCaller<void(Eigen::Affine3d *, const Joints &, const Tool[K])> fkin;
+  RTT::OperationCaller<void(Inertia &, const Joints &, const ToolMass*)> inertia;
+  RTT::OperationCaller<void(Jacobian &, const Joints &, const Tool*)> jacobian;
+  RTT::OperationCaller<void(Eigen::Affine3d *, const Joints &, const Tool*)> fkin;
+  RTT::OperationCaller<int(void)> dofs;
+  RTT::OperationCaller<int(void)> effectors;
 };
 }
 
