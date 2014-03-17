@@ -5,11 +5,7 @@ project(controller_common)
 # Find the RTT-ROS package (this transitively includes the Orocos CMake macros)
 find_package(catkin REQUIRED COMPONENTS
   rtt_ros
-  rtt_roscomm
-  rtt_rosclock
-  geometry_msgs 
-  std_msgs 
-  message_generation
+  cartesian_trajectory_msgs
   eigen_conversions
   )
 
@@ -17,11 +13,6 @@ find_package(Eigen REQUIRED)
 find_package(orocos_kdl REQUIRED)
 
 link_directories(${orocos_kdl_LIBRARY_DIRS})
-
-add_message_files(DIRECTORY msg)
-generate_messages(DEPENDENCIES geometry_msgs std_msgs)
-
-ros_generate_rtt_typekit(controller_common)
 
 include_directories(${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
 
