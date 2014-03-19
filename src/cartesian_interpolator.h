@@ -11,7 +11,7 @@
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>
 
-#include <controller_common/CartesianTrajectory.h>
+#include <cartesian_trajectory_msgs/CartesianTrajectory.h>
 #include <geometry_msgs/Pose.h>
 
 #include <Eigen/Dense>
@@ -25,14 +25,14 @@ public:
 	virtual void updateHook();
 
 private:
-	geometry_msgs::Pose interpolate(const controller_common::CartesianTrajectoryPoint& p0, const controller_common::CartesianTrajectoryPoint& p1, ros::Time t);
+	geometry_msgs::Pose interpolate(const cartesian_trajectory_msgs::CartesianTrajectoryPoint& p0, const cartesian_trajectory_msgs::CartesianTrajectoryPoint& p1, ros::Time t);
 	double interpolate(double p0, double p1, double t0, double t1, double t);
-	RTT::InputPort<controller_common::CartesianTrajectoryConstPtr > port_trajectory_;
+	RTT::InputPort<cartesian_trajectory_msgs::CartesianTrajectoryConstPtr > port_trajectory_;
 	RTT::InputPort<geometry_msgs::Pose > port_cartesian_position_;
 
 	RTT::OutputPort<geometry_msgs::Pose > port_cartesian_command_;
 
-	controller_common::CartesianTrajectoryConstPtr trajectory_;
+	cartesian_trajectory_msgs::CartesianTrajectoryConstPtr trajectory_;
 	geometry_msgs::Pose setpoint_;
 	geometry_msgs::Pose old_point_;
 

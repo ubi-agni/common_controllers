@@ -56,7 +56,7 @@ void CartesianInterpolator::updateHook() {
 
 		if(trajectory_ptr_ < trajectory_->points.size()) {
 			if(trajectory_ptr_ == 0) {
-				controller_common::CartesianTrajectoryPoint p0;
+				cartesian_trajectory_msgs::CartesianTrajectoryPoint p0;
 				p0.time_from_start.fromSec(0.0);
 				p0.pose = old_point_;
 				setpoint_ = interpolate(p0, trajectory_->points[trajectory_ptr_], now);
@@ -69,7 +69,7 @@ void CartesianInterpolator::updateHook() {
 	port_cartesian_command_.write(setpoint_);
 }
 
-geometry_msgs::Pose CartesianInterpolator::interpolate(const controller_common::CartesianTrajectoryPoint& p0, const controller_common::CartesianTrajectoryPoint& p1, ros::Time t) {
+geometry_msgs::Pose CartesianInterpolator::interpolate(const cartesian_trajectory_msgs::CartesianTrajectoryPoint& p0, const cartesian_trajectory_msgs::CartesianTrajectoryPoint& p1, ros::Time t) {
 	geometry_msgs::Pose pose;
 
 	ros::Time t0 = trajectory_->header.stamp + p0.time_from_start;

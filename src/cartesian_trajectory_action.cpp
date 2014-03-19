@@ -21,12 +21,12 @@ bool CartesianTrajectoryAction::startHook() {
 }
 
 void CartesianTrajectoryAction::updateHook() {
-	controller_common::CartesianTrajectory trj;
+	cartesian_trajectory_msgs::CartesianTrajectory trj;
 	if(port_cartesian_trajectory_.read(trj) == RTT::NewData) {
 		std::cout << "New trajectory point" << std::endl;
-		controller_common::CartesianTrajectory* trj_ptr =  new controller_common::CartesianTrajectory;
+		cartesian_trajectory_msgs::CartesianTrajectory* trj_ptr =  new cartesian_trajectory_msgs::CartesianTrajectory;
 		*trj_ptr = trj;
-		controller_common::CartesianTrajectoryConstPtr trj_cptr = controller_common::CartesianTrajectoryConstPtr(trj_ptr);
+		cartesian_trajectory_msgs::CartesianTrajectoryConstPtr trj_cptr = cartesian_trajectory_msgs::CartesianTrajectoryConstPtr(trj_ptr);
 
 		port_cartesian_trajectory_command_.write(trj_cptr);
 	}

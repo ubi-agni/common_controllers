@@ -16,7 +16,7 @@
 #include <controller_common/robot.h>
 
 #include <geometry_msgs/Pose.h>
-#include <controller_common/CartesianImpedance.h>
+#include <cartesian_trajectory_msgs/CartesianImpedance.h>
 
 #include <eigen_conversions/eigen_msg.h>
 
@@ -196,7 +196,7 @@ public:
 				tools[i](6) = pos.orientation.z;
 			}
 
-			controller_common::CartesianImpedance impedance;
+			cartesian_trajectory_msgs::CartesianImpedance impedance;
 			if (port_cartesian_impedance_command_[i]->read(impedance)
 					== RTT::NewData) {
 				Kc(i * 6 + 0) = impedance.stiffness.force.x;
@@ -349,7 +349,7 @@ private:
 	std::vector<RTT::InputPort<geometry_msgs::Pose>* > port_cartesian_position_command_;
 	std::vector<RTT::OutputPort<geometry_msgs::Pose>* > port_cartesian_position_;
 	std::vector<RTT::InputPort<geometry_msgs::Pose>* > port_tool_position_command_;
-	std::vector<RTT::InputPort<controller_common::CartesianImpedance>* > port_cartesian_impedance_command_;
+	std::vector<RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedance>* > port_cartesian_impedance_command_;
 
 	RTT::InputPort<Eigen::VectorXd> port_nullspace_torque_command_;
 
