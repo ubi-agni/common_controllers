@@ -74,7 +74,7 @@ private:
 
   Eigen::VectorXd input_;
   Eigen::VectorXd outputs_[N];
-  std::vector<size_t> out_;
+  std::vector<int> out_;
   
   size_t size_;
 };
