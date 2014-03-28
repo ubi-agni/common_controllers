@@ -27,9 +27,10 @@ private:
 	RTT::InputPort<Eigen::VectorXd> port_joint_position_;
 	RTT::InputPort<Eigen::VectorXd> port_joint_velocity_;
 	RTT::InputPort<Eigen::MatrixXd> port_mass_matrix_;
+	RTT::InputPort<Eigen::VectorXd> port_nullspace_torque_command_;
 	RTT::OutputPort<Eigen::VectorXd> port_joint_torque_command_;
 
-	Eigen::VectorXd joint_position_, joint_velocity_, joint_torque_command_;
+	Eigen::VectorXd joint_position_, joint_velocity_, joint_torque_command_, nullspace_torque_command_;
 
 	std::vector<double> upper_limit_, lower_limit_, max_trq_, limit_range_;
 

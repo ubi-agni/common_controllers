@@ -14,6 +14,8 @@ JointLimitAvoidance::JointLimitAvoidance(const std::string& name) :
 	this->ports()->addPort("JointVelocity", port_joint_velocity_);
 	this->ports()->addPort("MassMatrix", port_mass_matrix_);
 	this->ports()->addPort("JointTorqueCommand", port_joint_torque_command_);
+	this->ports()->addPort("NullSpaceTorqueCommand",
+				port_nullspace_torque_command_);
 
 	this->properties()->addProperty("upper_limit", upper_limit_);
 	this->properties()->addProperty("lower_limit", lower_limit_);
@@ -45,6 +47,7 @@ bool JointLimitAvoidance::configureHook() {
 		return false;
 	}
 	joint_torque_command_.resize(number_of_joints_);
+	nullspace_torque_command_ = Eigen::VectorXd::Zero(number_of_joints_);
 	k_.resize(number_of_joints_);
 	q_.resizeLike(m_);
 	k0_.resizeLike(m_);
@@ -57,7 +60,8 @@ void JointLimitAvoidance::updateHook() {
 
 	port_joint_position_.read(joint_position_);
 	port_joint_velocity_.read(joint_velocity_);
-
+	port_nullspace_torque_command_.read(nullspace_torque_command_);
+	
 	for (size_t i = 0; i < number_of_joints_; i++) {
 		joint_torque_command_(i) = jointLimitTrq(upper_limit_[i],
 				lower_limit_[i], limit_range_[i], max_trq_[i],
@@ -80,6 +84,8 @@ void JointLimitAvoidance::updateHook() {
 	d_.noalias() = q_ * 0.7 * tmpNN_ * q_.adjoint();
 
 	joint_torque_command_.noalias() -= d_ * joint_velocity_;
+
+	joint_torque_command_.noalias() += nullspace_torque_command_;
 
 //	std::cout << "===============================" << std::endl;
 //	std::cout << k_ << std::endl << std::endl;
