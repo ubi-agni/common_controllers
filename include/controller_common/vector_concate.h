@@ -37,14 +37,16 @@ public:
 
   void updateHook() {
     size_t k = 0;
+    bool new_data = false;
     for(size_t i = 0; i < N; i++) {
-      port_inputs_[i].read(inputs_[i]);
+      if(port_inputs_[i].read(inputs_[i]) == RTT::NewData)
+        new_data = true;
       for(size_t j = 0; j < inputs_[i].size(); j++) {
         output_[k++] = inputs_[i][j];
       }
     }
-    
-    port_output_.write(output_);
+    if(new_data)
+      port_output_.write(output_);
   }
 
 private:

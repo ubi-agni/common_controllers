@@ -33,7 +33,7 @@ public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	CartesianImpedance(const std::string &name) :
-			RTT::TaskContext(name)
+			RTT::TaskContext(name, PreOperational)
 	{
 		this->ports()->addPort("JointPosition", port_joint_position_);
 		this->ports()->addPort("JointVelocity", port_joint_velocity_);
