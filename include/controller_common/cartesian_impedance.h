@@ -122,8 +122,8 @@ public:
 		RESTRICT_ALLOC;
 
 		for (size_t i = 0; i < K; i++) {
-			Kc(i * 6 + 0) = 1500;
-			Kc(i * 6 + 1) = 1500;
+			Kc(i * 6 + 0) = 1;
+			Kc(i * 6 + 1) = 1;
 			Kc(i * 6 + 2) = 1500;
 			Kc(i * 6 + 3) = 150;
 			Kc(i * 6 + 4) = 150;
@@ -299,21 +299,47 @@ public:
 		Dc.noalias() = Q * 0.7 * tmpNN_ * Q.adjoint();
 		RESTRICT_ALLOC;
 		joint_torque_command_.noalias() -= Dc * joint_velocity_;
-
-
 #endif
 
 
 		// calculate null-space component
+		
 		tmpNK_.noalias() = J * Mi;
 		tmpKK_.noalias() = tmpNK_ * JT;
 		luKK_.compute(tmpKK_);
 		tmpKK_ = luKK_.inverse();
 		tmpKN_.noalias() = Mi * JT;
 		Ji.noalias() = tmpKN_ * tmpKK_;
-
+		
+		
+		/*
+		//tmpNK_.noalias() = J * Mi;
+		tmpKK_.noalias() = J * JT;
+		luKK_.compute(tmpKK_);
+		tmpKK_ = luKK_.inverse();
+		//tmpKN_.noalias() = Mi * JT;
+		Ji.noalias() = JT * tmpKK_;
+		*/ /*
 		P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
 		P.noalias() -= J.transpose() * Ji.transpose();
+		*/
+		
+		
+		P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
+		Eigen::Matrix<double, 16, 1> tmp1;
+		Eigen::Matrix<double, 1, 16> tmp2;
+		for(size_t i = 0; i < (K*6); i++) {
+			tmpNN_.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
+			tmp1 = J.row(i);
+			tmp2 = Ji.col(i);
+			tmp1.normalize();
+			tmp2.normalize();
+			tmpNN_.noalias() -= tmp1 * tmp2;
+			UNRESTRICT_ALLOC;
+			P = P * tmpNN_;
+			RESTRICT_ALLOC;
+		}
+		
 		joint_torque_command_.noalias() += P * nullspace_torque_command_;
 		//std::cout << "tau : " << P << std::endl;
 

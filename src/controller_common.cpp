@@ -13,7 +13,7 @@
 #include "cartesian_trajectory_action.h"
 #include "joint_limit_avoidance.h"
 #include "robot_mass_matrix.h"
-
+#include "mass_test.h"
 typedef VectorConcate<2> VectorConcate2;
 typedef VectorConcate<3> VectorConcate3;
 typedef VectorConcate<4> VectorConcate4;
@@ -39,6 +39,8 @@ ORO_LIST_COMPONENT_TYPE(CartesianTrajectoryAction)
 ORO_LIST_COMPONENT_TYPE(JointLimitAvoidance)
 
 ORO_LIST_COMPONENT_TYPE(RobotMassMatrix)
+
+ORO_LIST_COMPONENT_TYPE(MassTest)
 
 ORO_CREATE_COMPONENT_LIBRARY()
 
