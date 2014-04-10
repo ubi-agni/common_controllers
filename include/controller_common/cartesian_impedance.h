@@ -182,7 +182,6 @@ public:
 			geometry_msgs::Pose pos;
 			if (port_cartesian_position_command_[i]->read(pos) == RTT::NewData) {
 				tf::poseMsgToEigen(pos, r_cmd[i]);
-				port_cartesian_position_[i]->write(pos);
 			}
 
 			if (port_tool_position_command_[i]->read(pos) == RTT::NewData) {
@@ -348,7 +347,12 @@ public:
 		//std::cout << "tau : " << joint_torque_command_ << std::endl;
 		UNRESTRICT_ALLOC;
 		port_joint_torque_command_.write(joint_torque_command_);
-
+		
+		for(size_t i = 0; i < K; i++) {
+		  geometry_msgs::Pose pos;
+		  tf::poseEigenToMsg(r[i], pos);
+		  port_cartesian_position_[i]->write(pos);
+		}
 		//std::cout << "q : " << joint_position_ << std::endl;
 		double sec = RTT::os::TimeService::Instance()->secondsSince(tim);
 
