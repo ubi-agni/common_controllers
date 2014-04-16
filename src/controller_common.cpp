@@ -1,3 +1,4 @@
+// Copyright 2014 WUT
 /*
  * controller_common.cpp
  *

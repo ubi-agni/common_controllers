@@ -1,3 +1,4 @@
+// Copyright 2014 WUT
 /*
  * robot.h
  *
@@ -8,17 +9,21 @@
 #ifndef ROBOT_H_
 #define ROBOT_H_
 
-#include <rtt/RTT.hpp>
-#include <Eigen/Dense>
+#include <string>
 
-namespace controller_common
-{
-class Robot : public RTT::ServiceRequester
-{
-public:
-  Robot(RTT::TaskContext *owner) :
-      RTT::ServiceRequester("robot", owner), inertia("inertia"), jacobian("jacobian"), fkin("fkin"), dofs("dofs"), effectors("effectors")
-  {
+#include "rtt/RTT.hpp"
+#include "Eigen/Dense"
+
+namespace controller_common {
+class Robot : public RTT::ServiceRequester {
+ public:
+  explicit Robot(RTT::TaskContext *owner) :
+    RTT::ServiceRequester("robot", owner),
+    inertia("inertia"),
+    jacobian("jacobian"),
+    fkin("fkin"),
+    dofs("dofs"),
+    effectors("effectors") {
     this->addOperationCaller(inertia);
     this->addOperationCaller(jacobian);
     this->addOperationCaller(fkin);
@@ -38,6 +43,6 @@ public:
   RTT::OperationCaller<int(void)> dofs;
   RTT::OperationCaller<int(void)> effectors;
 };
-}
+}  // namespace controller_common
 
-#endif /* ROBOT_H_ */
+#endif  // ROBOT_H_
