@@ -30,12 +30,12 @@ add_dependencies(controller_common ${PROJECT_NAME}_gencpp)
 
 ### Orocos Package Exports and Install Targets ###
 
-# Generate install targets for header files
-
-orocos_install_headers(DIRECTORY include/${PROJECT_NAME})
-
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(
   INCLUDE_DIRS include
   DEPENDS rtt_ros geometry_msgs std_msgs message_runtime rtt_roscomm
+)
+
+orocos_install_headers(
+  DIRECTORY include/${PROJECT_NAME}/
 )
