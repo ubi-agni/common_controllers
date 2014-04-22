@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   cartesian_trajectory_msgs
   eigen_conversions
+  kdl_conversions
   )
 
 find_package(Eigen REQUIRED)
@@ -24,7 +25,7 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS} include)
 ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
-orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/joint_limit_avoidance.cpp src/robot_mass_matrix.cpp src/mass_test.cpp src/cartesian_impedance_interpolator.cpp src/cartesian_impedance_action.cpp)
+orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/joint_limit_avoidance.cpp src/robot_mass_matrix.cpp src/mass_test.cpp src/cartesian_impedance_interpolator.cpp src/cartesian_impedance_action.cpp src/pose_transform.cpp)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES})
 add_dependencies(controller_common ${PROJECT_NAME}_gencpp)
 

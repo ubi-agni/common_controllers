@@ -17,6 +17,7 @@
 #include "mass_test.h"
 #include "cartesian_impedance_interpolator.h"
 #include "cartesian_impedance_action.h"
+#include "pose_transform.h"
 
 typedef VectorConcate<2> VectorConcate2;
 typedef VectorConcate<3> VectorConcate3;
@@ -49,6 +50,8 @@ ORO_LIST_COMPONENT_TYPE(MassTest)
 ORO_LIST_COMPONENT_TYPE(CartesianImpedanceInterpolator)
 
 ORO_LIST_COMPONENT_TYPE(CartesianImpedanceAction)
+
+ORO_LIST_COMPONENT_TYPE(PoseTransform)
 
 ORO_CREATE_COMPONENT_LIBRARY()
 
