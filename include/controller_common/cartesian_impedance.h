@@ -40,6 +40,9 @@ class CartesianImpedance: public RTT::TaskContext {
 
   explicit CartesianImpedance(const std::string &name) :
     RTT::TaskContext(name, PreOperational) {
+    N = 0;
+    K = 0;
+    
     this->ports()->addPort("JointPosition", port_joint_position_);
     this->ports()->addPort("JointVelocity", port_joint_velocity_);
     this->ports()->addPort("MassMatrixInv", port_mass_matrix_inv_);
@@ -175,8 +178,6 @@ class CartesianImpedance: public RTT::TaskContext {
     RESTRICT_ALLOC;
     ToolMass toolsM[K];
     Eigen::Affine3d r[K];
-
-    RTT::os::TimeService::ticks tim = RTT::os::TimeService::Instance()->ticksGet();
 
     // read inputs
     port_joint_position_.read(joint_position_);
@@ -326,8 +327,6 @@ class CartesianImpedance: public RTT::TaskContext {
       tf::poseEigenToMsg(r[i], pos);
       port_cartesian_position_[i]->write(pos);
     }
-
-    double sec = RTT::os::TimeService::Instance()->secondsSince(tim);
   }
 
   typedef controller_common::Robot Robot;
