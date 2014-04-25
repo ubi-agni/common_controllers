@@ -2,8 +2,8 @@
 /*
  * pose_transform.h
  *
- *  Created on: 11 kwi 2014
- *      Author: w
+ *  Created on: 11 apr 2014
+ *      Author: mwalecki
  */
 
 #include <rtt/TaskContext.hpp>
