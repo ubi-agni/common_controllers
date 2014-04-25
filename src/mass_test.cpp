@@ -13,7 +13,7 @@
 MassTest::MassTest(const std::string& name) : RTT::TaskContext(name, PreOperational) {
   number_of_joints_ = 0;
   number_of_effectors_ = 0;
-  
+
   this->ports()->addPort("JointPosition", port_joint_position_);
   this->ports()->addPort("MassMatrix", port_mass_matrix_);
   this->ports()->addPort("MassMatrixLeft", port_mass_matrix_left_);
