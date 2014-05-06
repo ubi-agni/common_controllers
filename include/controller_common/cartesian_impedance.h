@@ -42,7 +42,7 @@ class CartesianImpedance: public RTT::TaskContext {
     RTT::TaskContext(name, PreOperational) {
     N = 0;
     K = 0;
-    
+
     this->ports()->addPort("JointPosition", port_joint_position_);
     this->ports()->addPort("JointVelocity", port_joint_velocity_);
     this->ports()->addPort("MassMatrixInv", port_mass_matrix_inv_);
@@ -381,3 +381,4 @@ class CartesianImpedance: public RTT::TaskContext {
 };
 
 #endif  // CARTESIAN_IMPEDANCE_H_
+

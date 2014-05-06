@@ -33,16 +33,16 @@ class PoseTransform: public RTT::TaskContext {
   virtual bool configureHook();
   virtual bool startHook();
   virtual void updateHook();
-  
+
  private:
   std::vector<geometry_msgs::Pose> primary_frame_pose_;
   std::vector<pose_status> primary_frame_status;
   std::vector<KDL::Frame> primary_frame;
-  
+
   geometry_msgs::Pose primary_target_pose_;
   pose_status primary_target_status;
   KDL::Frame primary_target;
-  
+
   geometry_msgs::Pose secondary_target_pose_;
   KDL::Frame secondary_target;
   int primary_frame_selector;
