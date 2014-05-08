@@ -52,7 +52,7 @@ void CartesianTrajectoryAction::updateHook() {
     port_cartesian_trajectory_command_.write(trj_cptr);
   }
 
-  if (active_goal_.isValid()) {
+  if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
     cartesian_trajectory_msgs::CartesianTrajectoryFeedback feedback;
     Eigen::Affine3d actual, desired, error;
 
@@ -86,7 +86,7 @@ void CartesianTrajectoryAction::updateHook() {
 
 void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
   // cancel active goal
-  if (active_goal_.isValid()) {
+  if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
     active_goal_.setCanceled();
   }
 
