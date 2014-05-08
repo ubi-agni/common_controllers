@@ -10,8 +10,6 @@
 
 #include <string>
 
-#include "Eigen/Dense"
-
 #include "rtt_rosclock/rtt_rosclock.h"
 #include "eigen_conversions/eigen_msg.h"
 
@@ -21,6 +19,7 @@ using cartesian_trajectory_msgs::CartesianTrajectoryConstPtr;
 CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) : RTT::TaskContext(name) {
   this->ports()->addPort("CartesianTrajectoryCommand", port_cartesian_trajectory_command_);
   this->ports()->addPort("trajectory", port_cartesian_trajectory_);
+  this->ports()->addPort("CartesianPosition", port_cartesian_position_);
 
   as_.addPorts(this->provides());
 
@@ -72,8 +71,12 @@ void CartesianTrajectoryAction::updateHook() {
 
     Goal g = active_goal_.getGoal();
 
-    // TODO(konradb3): check path constraint.
-
+    if (!checkTolerance(error, g->path_tolerance)) {
+      port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
+      cartesian_trajectory_msgs::CartesianTrajectoryResult res;
+      res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      active_goal_.setAborted(res);
+    }
 
     // TODO(konradb3): check goal constraint.
     size_t last_point = g->trajectory.points.size() - 1;
@@ -82,6 +85,37 @@ void CartesianTrajectoryAction::updateHook() {
       active_goal_.setSucceeded();
     }
   }
+}
+
+bool CartesianTrajectoryAction::checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol) {
+  if ((tol.position.x > 0.0) && (fabs(err.translation().x()) > tol.position.x)) {
+    return false;
+  }
+
+  if ((tol.position.y > 0.0) && (fabs(err.translation().y()) > tol.position.y)) {
+    return false;
+  }
+
+  if ((tol.position.z > 0.0) && (fabs(err.translation().z()) > tol.position.z)) {
+    return false;
+  }
+
+  Eigen::AngleAxisd ax(err.rotation());
+  Eigen::Vector3d rot = ax.axis() * ax.angle();
+
+  if ((tol.rotation.x > 0.0) && (fabs(rot(0)) > tol.rotation.x)) {
+    return false;
+  }
+
+  if ((tol.rotation.y > 0.0) && (fabs(rot(1)) > tol.rotation.y)) {
+    return false;
+  }
+
+  if ((tol.rotation.z > 0.0) && (fabs(rot(2)) > tol.rotation.z)) {
+    return false;
+  }
+
+  return true;
 }
 
 void CartesianTrajectoryAction::goalCB(GoalHandle gh) {

@@ -20,10 +20,12 @@
 #include "rtt_actionlib/rtt_actionlib.h"
 #include "rtt_actionlib/rtt_action_server.h"
 
+#include "Eigen/Dense"
+
 class CartesianTrajectoryAction: public RTT::TaskContext {
-private:
- typedef actionlib::ServerGoalHandle<cartesian_trajectory_msgs::CartesianTrajectoryAction> GoalHandle;
- typedef boost::shared_ptr<const cartesian_trajectory_msgs::CartesianTrajectoryGoal> Goal;
+ private:
+  typedef actionlib::ServerGoalHandle<cartesian_trajectory_msgs::CartesianTrajectoryAction> GoalHandle;
+  typedef boost::shared_ptr<const cartesian_trajectory_msgs::CartesianTrajectoryGoal> Goal;
 
  public:
   explicit CartesianTrajectoryAction(const std::string& name);
@@ -35,7 +37,9 @@ private:
  private:
   void goalCB(GoalHandle gh);
   void cancelCB(GoalHandle gh);
- 
+
+  bool checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol);
+
   RTT::OutputPort<cartesian_trajectory_msgs::CartesianTrajectoryConstPtr> port_cartesian_trajectory_command_;
   RTT::InputPort<cartesian_trajectory_msgs::CartesianTrajectory> port_cartesian_trajectory_;
   RTT::InputPort<geometry_msgs::Pose> port_cartesian_position_;
