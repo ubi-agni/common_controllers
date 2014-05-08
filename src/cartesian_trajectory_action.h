@@ -14,8 +14,17 @@
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
 #include "cartesian_trajectory_msgs/CartesianTrajectory.h"
+#include "cartesian_trajectory_msgs/CartesianTrajectoryAction.h"
+#include "cartesian_trajectory_msgs/CartesianTrajectoryGoal.h"
+
+#include "rtt_actionlib/rtt_actionlib.h"
+#include "rtt_actionlib/rtt_action_server.h"
 
 class CartesianTrajectoryAction: public RTT::TaskContext {
+private:
+ typedef actionlib::ServerGoalHandle<cartesian_trajectory_msgs::CartesianTrajectoryAction> GoalHandle;
+ typedef boost::shared_ptr<const cartesian_trajectory_msgs::CartesianTrajectoryGoal> Goal;
+
  public:
   explicit CartesianTrajectoryAction(const std::string& name);
   virtual ~CartesianTrajectoryAction();
@@ -24,8 +33,15 @@ class CartesianTrajectoryAction: public RTT::TaskContext {
   void updateHook();
 
  private:
+  void goalCB(GoalHandle gh);
+  void cancelCB(GoalHandle gh);
+ 
   RTT::OutputPort<cartesian_trajectory_msgs::CartesianTrajectoryConstPtr> port_cartesian_trajectory_command_;
   RTT::InputPort<cartesian_trajectory_msgs::CartesianTrajectory> port_cartesian_trajectory_;
+  RTT::InputPort<geometry_msgs::Pose> port_cartesian_position_;
+  RTT::InputPort<geometry_msgs::Pose> port_cartesian_position_command_;
+  rtt_actionlib::RTTActionServer<cartesian_trajectory_msgs::CartesianTrajectoryAction> as_;
+  GoalHandle active_goal_;
 };
 
 #endif  // CARTESIAN_TRAJECTORY_ACTION_H_
