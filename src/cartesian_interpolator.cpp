@@ -21,9 +21,8 @@ CartesianInterpolator::CartesianInterpolator(const std::string& name)
   this->ports()->addPort("CartesianPositionCommand", port_cartesian_command_);
   this->ports()->addPort("CartesianTrajectoryCommand", port_trajectory_);
 
-  this->addProperty("activate_pose_init_property",
-                    activate_pose_init_property_);
-  this->addProperty("init_setpoint_property", init_setpoint_property_);
+  this->addProperty("activate_pose_init", activate_pose_init_property_);
+  this->addProperty("init_setpoint", init_setpoint_property_);
 }
 
 CartesianInterpolator::~CartesianInterpolator() {
