@@ -15,11 +15,15 @@
 using ::cartesian_trajectory_msgs::CartesianImpedance;
 using ::cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint;
 
-CartesianImpedanceInterpolator::CartesianImpedanceInterpolator(const std::string& name) :
-  RTT::TaskContext(name), trajectory_ptr_(0) {
+CartesianImpedanceInterpolator::CartesianImpedanceInterpolator(
+    const std::string& name)
+    : RTT::TaskContext(name),
+      trajectory_ptr_(0) {
   this->ports()->addPort("CartesianImpedance", port_cartesian_impedance_);
-  this->ports()->addPort("CartesianImpedanceCommand", port_cartesian_impedance_command_);
-  this->ports()->addPort("CartesianImpedanceTrajectoryCommand", port_trajectory_);
+  this->ports()->addPort("CartesianImpedanceCommand",
+                         port_cartesian_impedance_command_);
+  this->ports()->addPort("CartesianImpedanceTrajectoryCommand",
+                         port_trajectory_);
 }
 
 CartesianImpedanceInterpolator::~CartesianImpedanceInterpolator() {
@@ -59,7 +63,7 @@ void CartesianImpedanceInterpolator::updateHook() {
   if (trajectory_ && (trajectory_->header.stamp < now)) {
     for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
       ros::Time trj_time = trajectory_->header.stamp
-                           + trajectory_->points[trajectory_ptr_].time_from_start;
+          + trajectory_->points[trajectory_ptr_].time_from_start;
       if (trj_time > now) {
         break;
       }
@@ -72,16 +76,17 @@ void CartesianImpedanceInterpolator::updateHook() {
         p0.impedance = old_point_;
         setpoint_ = interpolate(p0, trajectory_->points[trajectory_ptr_], now);
       } else {
-        setpoint_ = interpolate(trajectory_->points[trajectory_ptr_-1], trajectory_->points[trajectory_ptr_], now);
+        setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
+                                trajectory_->points[trajectory_ptr_], now);
       }
     }
   }
   port_cartesian_impedance_command_.write(setpoint_);
 }
 
-CartesianImpedance CartesianImpedanceInterpolator::interpolate(const CartesianImpedanceTrajectoryPoint& p0,
-                                                               const CartesianImpedanceTrajectoryPoint& p1,
-                                                               ros::Time t) {
+CartesianImpedance CartesianImpedanceInterpolator::interpolate(
+    const CartesianImpedanceTrajectoryPoint& p0,
+    const CartesianImpedanceTrajectoryPoint& p1, ros::Time t) {
   CartesianImpedance impedance;
 
   ros::Time t0 = trajectory_->header.stamp + p0.time_from_start;
@@ -130,6 +135,8 @@ CartesianImpedance CartesianImpedanceInterpolator::interpolate(const CartesianIm
   return impedance;
 }
 
-double CartesianImpedanceInterpolator::interpolate(double p0, double p1, double t0, double t1, double t) {
-  return (p0 + (p1 - p0) * (t - t0)/(t1 - t0));
+double CartesianImpedanceInterpolator::interpolate(double p0, double p1,
+                                                   double t0, double t1,
+                                                   double t) {
+  return (p0 + (p1 - p0) * (t - t0) / (t1 - t0));
 }
