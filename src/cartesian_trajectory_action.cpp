@@ -55,7 +55,7 @@ void CartesianTrajectoryAction::updateHook() {
     cartesian_trajectory_msgs::CartesianTrajectoryFeedback feedback;
     Eigen::Affine3d actual, desired, error;
 
-    ros::Time now = rtt_rosclock::host_rt_now();
+    ros::Time now = rtt_rosclock::host_now();
 
     port_cartesian_position_.read(feedback.actual);
     port_cartesian_position_command_.read(feedback.desired);
