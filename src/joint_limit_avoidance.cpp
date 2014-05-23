@@ -75,13 +75,13 @@ void JointLimitAvoidance::updateHook() {
 
   port_mass_matrix_.read(m_);
   tmpNN_ = k_.asDiagonal();
-  es_.compute(tmpNN_, m_, Eigen::ComputeEigenvectors | Eigen::BAx_lx);
-  q_ = es_.eigenvectors();
+  es_.compute(tmpNN_, m_);
+  q_ = es_.eigenvectors().inverse();
   k0_ = es_.eigenvalues();
 
   tmpNN_ = k0_.cwiseSqrt().asDiagonal();
 
-  d_.noalias() = q_ * 0.7 * tmpNN_ * q_.adjoint();
+  d_.noalias() = 2.0 * q_.adjoint() * 0.7 * tmpNN_ * q_;
 
   joint_torque_command_.noalias() -= d_ * joint_velocity_;
 
