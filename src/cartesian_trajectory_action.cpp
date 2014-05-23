@@ -20,6 +20,7 @@ CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) : 
   this->ports()->addPort("CartesianTrajectoryCommand", port_cartesian_trajectory_command_);
   this->ports()->addPort("trajectory", port_cartesian_trajectory_);
   this->ports()->addPort("CartesianPosition", port_cartesian_position_);
+  this->ports()->addPort("CartesianPositionCommand", port_cartesian_position_command_);
 
   as_.addPorts(this->provides());
 
