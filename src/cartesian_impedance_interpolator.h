@@ -19,7 +19,7 @@
 
 #include "Eigen/Dense"
 
-class CartesianImpedanceInterpolator: public RTT::TaskContext {
+class CartesianImpedanceInterpolator : public RTT::TaskContext {
  public:
   explicit CartesianImpedanceInterpolator(const std::string& name);
   virtual ~CartesianImpedanceInterpolator();
@@ -28,14 +28,15 @@ class CartesianImpedanceInterpolator: public RTT::TaskContext {
   virtual void updateHook();
 
  private:
-  cartesian_trajectory_msgs::CartesianImpedance interpolate(const cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint& p0,
-                                                            const cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint& p1,
-                                                            ros::Time t);
+  cartesian_trajectory_msgs::CartesianImpedance interpolate(
+      const cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint& p0,
+      const cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint& p1,
+      ros::Time t);
   double interpolate(double p0, double p1, double t0, double t1, double t);
-  RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedanceTrajectoryConstPtr > port_trajectory_;
-  RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedance > port_cartesian_impedance_;
+  RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedanceTrajectoryConstPtr> port_trajectory_;
+  RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedance> port_cartesian_impedance_;
 
-  RTT::OutputPort<cartesian_trajectory_msgs::CartesianImpedance > port_cartesian_impedance_command_;
+  RTT::OutputPort<cartesian_trajectory_msgs::CartesianImpedance> port_cartesian_impedance_command_;
 
   cartesian_trajectory_msgs::CartesianImpedanceTrajectoryConstPtr trajectory_;
   cartesian_trajectory_msgs::CartesianImpedance setpoint_;

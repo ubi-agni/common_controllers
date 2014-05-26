@@ -42,6 +42,9 @@ class CartesianInterpolator: public RTT::TaskContext {
   geometry_msgs::Pose old_point_;
 
   size_t trajectory_ptr_;
+
+  bool activate_pose_init_property_;
+  geometry_msgs::Pose init_setpoint_property_;
 };
 
 #endif  // CARTESIAN_INTERPOLATOR_H_
