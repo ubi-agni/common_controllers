@@ -21,6 +21,7 @@ CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) : 
   this->ports()->addPort("trajectory", port_cartesian_trajectory_);
   this->ports()->addPort("CartesianPosition", port_cartesian_position_);
   this->ports()->addPort("CartesianPositionCommand", port_cartesian_position_command_);
+  this->ports()->addPort("CartesianWrench", port_cartesian_wrench_);
 
   as_.addPorts(this->provides());
 
@@ -79,6 +80,17 @@ void CartesianTrajectoryAction::updateHook() {
       active_goal_.setAborted(res);
     }
 
+    geometry_msgs::Wrench ft;
+    port_cartesian_wrench_.read(ft);
+
+    if (!checkWrenchTolerance(ft, g->wrench_constraint)) {
+      port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
+      cartesian_trajectory_msgs::CartesianTrajectoryResult res;
+      res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      active_goal_.setAborted(res);
+    }
+
+
     // TODO(konradb3): check goal constraint.
     size_t last_point = g->trajectory.points.size() - 1;
 
@@ -113,6 +125,34 @@ bool CartesianTrajectoryAction::checkTolerance(Eigen::Affine3d err, cartesian_tr
   }
 
   if ((tol.rotation.z > 0.0) && (fabs(rot(2)) > tol.rotation.z)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool CartesianTrajectoryAction::checkWrenchTolerance(geometry_msgs::Wrench msr, geometry_msgs::Wrench tol) {
+  if ((tol.force.x > 0.0) && (fabs(msr.force.x) > tol.force.x)) {
+    return false;
+  }
+
+  if ((tol.force.y > 0.0) && (fabs(msr.force.y) > tol.force.y)) {
+    return false;
+  }
+
+  if ((tol.force.z > 0.0) && (fabs(msr.force.z) > tol.force.z)) {
+    return false;
+  }
+
+  if ((tol.torque.x > 0.0) && (fabs(msr.torque.x) > tol.torque.x)) {
+    return false;
+  }
+
+  if ((tol.torque.y > 0.0) && (fabs(msr.torque.y) > tol.torque.y)) {
+    return false;
+  }
+
+  if ((tol.torque.z > 0.0) && (fabs(msr.torque.z) > tol.torque.z)) {
     return false;
   }
 
