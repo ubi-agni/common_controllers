@@ -71,6 +71,8 @@ void CartesianInterpolator::updateHook() {
         setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
                                 trajectory_->points[trajectory_ptr_], now);
       }
+    } else {
+      setpoint_ = trajectory_->points[trajectory_->points.size() - 1].pose;
     }
   }
   port_cartesian_command_.write(setpoint_);
