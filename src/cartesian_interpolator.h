@@ -45,6 +45,8 @@ class CartesianInterpolator: public RTT::TaskContext {
 
   bool activate_pose_init_property_;
   geometry_msgs::Pose init_setpoint_property_;
+
+  bool last_point_not_set_;
 };
 
 #endif  // CARTESIAN_INTERPOLATOR_H_
