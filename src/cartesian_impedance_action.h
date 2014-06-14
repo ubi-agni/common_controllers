@@ -36,9 +36,9 @@ class CartesianImpedanceAction: public RTT::TaskContext {
  private:
   void goalCB(GoalHandle gh);
   void cancelCB(GoalHandle gh);
- 
+
   bool checkImpedance(const cartesian_trajectory_msgs::CartesianImpedance& imp);
- 
+
   RTT::OutputPort<cartesian_trajectory_msgs::CartesianImpedanceTrajectoryConstPtr> port_cartesian_trajectory_command_;
   RTT::InputPort<cartesian_trajectory_msgs::CartesianImpedanceTrajectory> port_cartesian_trajectory_;
   rtt_actionlib::RTTActionServer<cartesian_trajectory_msgs::CartesianImpedanceAction> as_;
