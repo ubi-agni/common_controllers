@@ -31,7 +31,6 @@ class PoseTransform: public RTT::TaskContext {
   explicit PoseTransform(const std::string &name);
   virtual ~PoseTransform();
   virtual bool configureHook();
-  virtual bool startHook();
   virtual void updateHook();
 
  private:
