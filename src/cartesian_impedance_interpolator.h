@@ -43,6 +43,7 @@ class CartesianImpedanceInterpolator : public RTT::TaskContext {
   cartesian_trajectory_msgs::CartesianImpedance old_point_;
 
   size_t trajectory_ptr_;
+  bool last_point_not_set_;
 };
 
 #endif  // CARTESIAN_IMPEDANCE_INTERPOLATOR_H_

@@ -50,6 +50,8 @@ bool CartesianImpedanceInterpolator::startHook() {
   setpoint_.damping.torque.y = 0.7;
   setpoint_.damping.torque.z = 0.7;
 
+  last_point_not_set_ = false;
+
   return true;
 }
 
@@ -57,6 +59,7 @@ void CartesianImpedanceInterpolator::updateHook() {
   if (port_trajectory_.read(trajectory_) == RTT::NewData) {
     trajectory_ptr_ = 0;
     old_point_ = setpoint_;
+    last_point_not_set_ = true;
   }
 
   ros::Time now = rtt_rosclock::host_now();
@@ -79,6 +82,9 @@ void CartesianImpedanceInterpolator::updateHook() {
         setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
                                 trajectory_->points[trajectory_ptr_], now);
       }
+    } else if (last_point_not_set_) {
+      setpoint_ = trajectory_->points[trajectory_->points.size() - 1].impedance;
+      last_point_not_set_ = false;
     }
   }
   port_cartesian_impedance_command_.write(setpoint_);
