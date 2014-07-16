@@ -9,6 +9,7 @@
 
 #include "controller_common/vector_concate.h"
 #include "controller_common/vector_split.h"
+#include "controller_common/decimator.h"
 #include "controller_common/cartesian_impedance.h"
 #include "cartesian_interpolator.h"
 #include "cartesian_trajectory_action.h"
@@ -18,6 +19,7 @@
 #include "cartesian_impedance_interpolator.h"
 #include "cartesian_impedance_action.h"
 #include "pose_transform.h"
+#include "tf_publisher.h"
 
 typedef VectorConcate<2> VectorConcate2;
 typedef VectorConcate<3> VectorConcate3;
@@ -34,6 +36,10 @@ typedef VectorSplit<4> VectorSplit4;
 ORO_LIST_COMPONENT_TYPE(VectorSplit2)
 ORO_LIST_COMPONENT_TYPE(VectorSplit3)
 ORO_LIST_COMPONENT_TYPE(VectorSplit4)
+
+typedef Decimator<geometry_msgs::Wrench> DecimatorWrench;
+
+ORO_LIST_COMPONENT_TYPE(DecimatorWrench)
 
 ORO_LIST_COMPONENT_TYPE(CartesianImpedance)
 
@@ -52,6 +58,8 @@ ORO_LIST_COMPONENT_TYPE(CartesianImpedanceInterpolator)
 ORO_LIST_COMPONENT_TYPE(CartesianImpedanceAction)
 
 ORO_LIST_COMPONENT_TYPE(PoseTransform)
+
+ORO_LIST_COMPONENT_TYPE(TfPublisher)
 
 ORO_CREATE_COMPONENT_LIBRARY()
 
