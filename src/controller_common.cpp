@@ -20,6 +20,7 @@
 #include "cartesian_impedance_action.h"
 #include "pose_transform.h"
 #include "tf_publisher.h"
+#include "torque_publisher.h"
 
 typedef VectorConcate<2> VectorConcate2;
 typedef VectorConcate<3> VectorConcate3;
@@ -60,6 +61,8 @@ ORO_LIST_COMPONENT_TYPE(CartesianImpedanceAction)
 ORO_LIST_COMPONENT_TYPE(PoseTransform)
 
 ORO_LIST_COMPONENT_TYPE(TfPublisher)
+
+ORO_LIST_COMPONENT_TYPE(TorquePublisher)
 
 ORO_CREATE_COMPONENT_LIBRARY()
 
