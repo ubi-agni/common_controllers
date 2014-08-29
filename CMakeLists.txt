@@ -7,7 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   cartesian_trajectory_msgs
   eigen_conversions
-  kdl_conversions
+  kdl_conversions cmake_modules
   )
 
 find_package(Eigen REQUIRED)
