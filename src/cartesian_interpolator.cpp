@@ -42,7 +42,7 @@ bool CartesianInterpolator::startHook() {
       return false;
     }
   }
-
+  last_point_not_set_ = false;
   return true;
 }
 
