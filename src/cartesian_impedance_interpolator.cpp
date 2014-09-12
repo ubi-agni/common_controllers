@@ -18,7 +18,8 @@ using ::cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint;
 CartesianImpedanceInterpolator::CartesianImpedanceInterpolator(
     const std::string& name)
     : RTT::TaskContext(name),
-      trajectory_ptr_(0) {
+      trajectory_ptr_(0),
+      trajectory_active_(false)  {
   this->ports()->addPort("CartesianImpedance", port_cartesian_impedance_);
   this->ports()->addPort("CartesianImpedanceCommand",
                          port_cartesian_impedance_command_);
@@ -51,6 +52,7 @@ bool CartesianImpedanceInterpolator::startHook() {
   setpoint_.damping.torque.z = 0.7;
 
   last_point_not_set_ = false;
+  trajectory_active_ = false;
 
   return true;
 }
@@ -60,10 +62,11 @@ void CartesianImpedanceInterpolator::updateHook() {
     trajectory_ptr_ = 0;
     old_point_ = setpoint_;
     last_point_not_set_ = true;
+    trajectory_active_ = true;
   }
 
   ros::Time now = rtt_rosclock::host_now();
-  if (trajectory_ && (trajectory_->header.stamp < now)) {
+  if (trajectory_active_ && trajectory_ && (trajectory_->header.stamp < now)) {
     for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
       ros::Time trj_time = trajectory_->header.stamp
           + trajectory_->points[trajectory_ptr_].time_from_start;

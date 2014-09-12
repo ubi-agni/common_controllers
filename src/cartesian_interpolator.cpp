@@ -17,7 +17,8 @@ CartesianInterpolator::CartesianInterpolator(const std::string& name)
     : RTT::TaskContext(name),
       trajectory_ptr_(0),
       activate_pose_init_property_(false),
-      last_point_not_set_(false) {
+      last_point_not_set_(false),
+      trajectory_active_(false) {
   this->ports()->addPort("CartesianPosition", port_cartesian_position_);
   this->ports()->addPort("CartesianPositionCommand", port_cartesian_command_);
   this->ports()->addPort("CartesianTrajectoryCommand", port_trajectory_);
@@ -43,6 +44,7 @@ bool CartesianInterpolator::startHook() {
     }
   }
   last_point_not_set_ = false;
+  trajectory_active_ = false;
   return true;
 }
 
@@ -51,10 +53,12 @@ void CartesianInterpolator::updateHook() {
     trajectory_ptr_ = 0;
     old_point_ = setpoint_;
     last_point_not_set_ = true;
+    trajectory_active_ = true;
+  //  std::cout << std::endl<< "CartesianInterpolator new trj" << std::endl<< std::endl<< std::endl;
   }
-
+  //std::cout << "CartesianInterpolator" << std::endl;
   ros::Time now = rtt_rosclock::host_now();
-  if (trajectory_ && (trajectory_->header.stamp < now)) {
+  if (trajectory_active_ && trajectory_ && (trajectory_->header.stamp < now)) {
     for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
       ros::Time trj_time = trajectory_->header.stamp
           + trajectory_->points[trajectory_ptr_].time_from_start;
