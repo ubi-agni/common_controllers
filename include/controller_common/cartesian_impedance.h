@@ -301,26 +301,9 @@ class CartesianImpedance: public RTT::TaskContext {
     tmpKN_.noalias() = Mi * JT;
     Ji.noalias() = tmpKN_ * tmpKK_;
 
-#if 0
+    P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
+    P.noalias() -=  J.transpose() * A * J * Mi;
 
-    P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-    Eigen::Matrix<double, 16, 1> tmp1;
-    Eigen::Matrix<double, 1, 16> tmp2;
-    for (size_t i = 0; i < (K*6); i++) {
-      tmpNN_.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-      tmp1 = J.row(i);
-      tmp2 = Ji.col(i);
-      tmp1.normalize();
-      tmp2.normalize();
-      tmpNN_.noalias() -= tmp1 * tmp2;
-      UNRESTRICT_ALLOC;
-      P = P * tmpNN_;
-      RESTRICT_ALLOC;
-    }
-#else
-    P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-    P.noalias() -= J.transpose() * Ji.transpose();
-#endif
     joint_torque_command_.noalias() += P * nullspace_torque_command_;
 
     // write outputs
