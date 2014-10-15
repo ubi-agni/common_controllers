@@ -24,7 +24,7 @@ class JointLimitAvoidance: public RTT::TaskContext {
 
   bool configureHook();
   void updateHook();
-
+  void stopHook();
  private:
   double jointLimitTrq(double hl, double ll, double ls, double r_max, double q);
 

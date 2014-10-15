@@ -90,6 +90,14 @@ void JointLimitAvoidance::updateHook() {
   port_joint_torque_command_.write(joint_torque_command_);
 }
 
+void JointLimitAvoidance::stopHook() {
+  for (int i = 0; i < joint_torque_command_.size(); i++) {
+    joint_torque_command_(i) = 0.0;
+  }
+  
+  port_joint_torque_command_.write(joint_torque_command_);
+}
+
 double JointLimitAvoidance::jointLimitTrq(double hl, double ll, double ls,
     double r_max, double q) {
   if (q > (hl - ls)) {
