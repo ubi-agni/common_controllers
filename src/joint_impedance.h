@@ -28,7 +28,6 @@ class JointImpedance: public RTT::TaskContext {
   void updateHook();
 
  private:
-
   RTT::InputPort<Eigen::VectorXd> port_joint_position_;
   RTT::InputPort<Eigen::VectorXd> port_joint_position_command_;
   RTT::InputPort<Eigen::VectorXd> port_joint_stiffness_command_;
@@ -37,7 +36,12 @@ class JointImpedance: public RTT::TaskContext {
   RTT::InputPort<Eigen::VectorXd> port_nullspace_torque_command_;
   RTT::OutputPort<Eigen::VectorXd> port_joint_torque_command_;
 
-  Eigen::VectorXd joint_position_, joint_position_command_, joint_error_, joint_velocity_, joint_torque_command_, nullspace_torque_command_;
+  Eigen::VectorXd joint_position_;
+  Eigen::VectorXd joint_position_command_;
+  Eigen::VectorXd joint_error_;
+  Eigen::VectorXd joint_velocity_;
+  Eigen::VectorXd joint_torque_command_;
+  Eigen::VectorXd nullspace_torque_command_;
 
   std::vector<double> initial_stiffness_;
 

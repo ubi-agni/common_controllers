@@ -25,12 +25,10 @@ TorquePublisher::~TorquePublisher() {
 }
 
 bool TorquePublisher::configureHook() {
-
   port_in_joint_torque_.getDataSample(joint_torque_);
   N_ = joint_torque_.size();
 
-  if (N_ <= 0)
-  {
+  if (N_ <= 0) {
     RTT::log(RTT::Error) << "Wrong size joint_torque vector: " << N_
                          << RTT::endlog();
     return false;
@@ -61,26 +59,25 @@ void TorquePublisher::updateHook() {
   port_in_joint_torque_command_.readNewest(joint_torque_command_);
   port_in_grav_torque_.readNewest(grav_torque_);
 
-  if (joint_torque_.size() != N_)
-  {
+  if (joint_torque_.size() != N_) {
     RTT::log(RTT::Error) << "Wrong size joint_torque_ vector: " << joint_torque_.size()
                          << RTT::endlog();
     return;
   }
-  if (joint_torque_command_.size() != N_)
-  {
+
+  if (joint_torque_command_.size() != N_) {
     RTT::log(RTT::Error) << "Wrong size joint_torque_command_ vector: " << joint_torque_command_.size()
                          << RTT::endlog();
     return;
   }
-  if (grav_torque_.size() != N_)
-  {
+
+  if (grav_torque_.size() != N_) {
     RTT::log(RTT::Error) << "Wrong size grav_torque_ vector: " << grav_torque_.size()
                          << RTT::endlog();
     return;
   }
-  for (size_t i = 0; i < N_; i++)
-  {
+
+  for (size_t i = 0; i < N_; i++) {
     out_torques_.data[i] = joint_torque_[i];
     out_torques_.data[i+N_] = joint_torque_command_[i];
     out_torques_.data[i+2*N_] = grav_torque_[i];

@@ -10,6 +10,7 @@
 #define TF_PUBLISHER_H_
 
 #include <string>
+#include <vector>
 
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"

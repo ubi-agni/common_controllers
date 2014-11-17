@@ -24,9 +24,7 @@ TfPublisher::~TfPublisher() {
 }
 
 bool TfPublisher::configureHook() {
-
-  if (frame_ids_.size() != child_frame_ids_.size())
-  {
+  if (frame_ids_.size() != child_frame_ids_.size()) {
     RTT::log(RTT::Error) << "Wrong size of input vectors"
                          << RTT::endlog();
     return false;
@@ -34,8 +32,7 @@ bool TfPublisher::configureHook() {
 
   N_ = frame_ids_.size();
 
-  if (N_ == 0)
-  {
+  if (N_ == 0) {
     RTT::log(RTT::Error) << "Input vectors is null"
                          << RTT::endlog();
     return false;
@@ -67,8 +64,7 @@ bool TfPublisher::startHook() {
 }
 
 void TfPublisher::updateHook() {
-  for (size_t i = 0; i < N_; i++)
-  {
+  for (size_t i = 0; i < N_; i++) {
     port_in_[i]->readNewest(pose_);
     message_.transforms[i].header.stamp = rtt_rosclock::host_now();
     message_.transforms[i].header.frame_id = frame_ids_[i];

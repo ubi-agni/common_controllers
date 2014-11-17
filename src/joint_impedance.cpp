@@ -1,6 +1,6 @@
 // Copyright 2014 WUT
 /*
- * joint_limit_avoidance.cpp
+ * joint_impedance.cpp
  *
  *  Created on: 11 sep 2014
  *      Author: konradb3
@@ -23,8 +23,6 @@ JointImpedance::JointImpedance(const std::string& name) :
 
   this->properties()->addProperty("number_of_joints", number_of_joints_);
   this->properties()->addProperty("initial_stiffness", initial_stiffness_);
-  //this->properties()->addProperty("limit_range", limit_range_);
-  //this->properties()->addProperty("max_trq", max_trq_);
 }
 
 JointImpedance::~JointImpedance() {
@@ -91,13 +89,28 @@ void JointImpedance::updateHook() {
   q_ = es_.eigenvectors().inverse();
   k0_ = es_.eigenvalues();
 
-  tmpNN_ = k0_.cwiseSqrt().asDiagonal();
+  tmpNN_ = k0_.cwiseAbs().cwiseSqrt().asDiagonal();
 
-  d_.noalias() = 2.0 * q_.adjoint() * 0.7 * tmpNN_ * q_;
+  d_.noalias() = 2.0 * q_.transpose() * 0.7 * tmpNN_ * q_;
+
+  if (!joint_torque_command_.allFinite()) {
+    RTT::log(RTT::Error) << "Non finite output form stiffness" << std::endl;
+    stop();
+  }
 
   joint_torque_command_.noalias() -= d_ * joint_velocity_;
 
+  if (!joint_torque_command_.allFinite()) {
+    RTT::log(RTT::Error) << "Non finite output form damping" << std::endl;
+    stop();
+  }
+
   joint_torque_command_.noalias() += nullspace_torque_command_;
+
+  if (!joint_torque_command_.allFinite()) {
+    RTT::log(RTT::Error) << "Non finite output form nullspace" << std::endl;
+    stop();
+  }
 
   port_joint_torque_command_.write(joint_torque_command_);
 }

@@ -94,7 +94,6 @@ void JointLimitAvoidance::stopHook() {
   for (int i = 0; i < joint_torque_command_.size(); i++) {
     joint_torque_command_(i) = 0.0;
   }
-  
   port_joint_torque_command_.write(joint_torque_command_);
 }
 

@@ -23,7 +23,7 @@ SimpleTransmisionInv::SimpleTransmisionInv(const std::string& name)
   this->ports()->addPort("JointVelocity", port_joint_velocity_);
   this->ports()->addPort("MotorCurrent", port_motor_current_);
   this->ports()->addPort("JointTorque", port_joint_torque_);
-  
+
   this->addProperty("gear", gear_);
   this->addProperty("encoder_res", encoder_res_);
   this->addProperty("motor_offset", motor_offset_);
@@ -53,7 +53,7 @@ void SimpleTransmisionInv::updateHook() {
     double mvel =  ((jvel * (encoder_res_ * gear_))/(M_PI * 2));
     port_motor_velocity_.write(mvel);
   }
-  
+
   if (port_joint_torque_.read(jtrq) == RTT::NewData) {
     double mvel =  (jtrq/gear_)/motor_constant_;
     port_motor_current_.write(mvel);

@@ -22,7 +22,7 @@ SimpleTransmision::SimpleTransmision(const std::string& name)
   this->ports()->addPort("MotorVelocity", port_motor_velocity_);
   this->ports()->addPort("JointPosition", port_joint_position_);
   this->ports()->addPort("JointVelocity", port_joint_velocity_);
-  
+
   this->addProperty("gear", gear_);
   this->addProperty("encoder_res", encoder_res_);
   this->addProperty("motor_offset", motor_offset_);

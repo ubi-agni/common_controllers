@@ -35,7 +35,6 @@ bool CartesianInterpolator::configureHook() {
 }
 
 bool CartesianInterpolator::startHook() {
-
   if (activate_pose_init_property_) {
     setpoint_ = init_setpoint_property_;
   } else {
@@ -54,9 +53,8 @@ void CartesianInterpolator::updateHook() {
     old_point_ = setpoint_;
     last_point_not_set_ = true;
     trajectory_active_ = true;
-  //  std::cout << std::endl<< "CartesianInterpolator new trj" << std::endl<< std::endl<< std::endl;
   }
-  //std::cout << "CartesianInterpolator" << std::endl;
+
   ros::Time now = rtt_rosclock::host_now();
   if (trajectory_active_ && trajectory_ && (trajectory_->header.stamp < now)) {
     for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
