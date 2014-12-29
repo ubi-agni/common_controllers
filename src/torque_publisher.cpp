@@ -15,10 +15,10 @@
 TorquePublisher::TorquePublisher(const std::string& name)
     : RTT::TaskContext(name),
       N_(0) {
-  this->ports()->addPort("InJointTorque",port_in_joint_torque_);
-  this->ports()->addPort("InJointTorqueCommand",port_in_joint_torque_command_);
-  this->ports()->addPort("InGravityTorque",port_in_grav_torque_);
-  this->ports()->addPort("OutTorques",port_out_torques_);
+  this->ports()->addPort("InJointTorque", port_in_joint_torque_);
+  this->ports()->addPort("InJointTorqueCommand", port_in_joint_torque_command_);
+  this->ports()->addPort("InGravityTorque", port_in_grav_torque_);
+  this->ports()->addPort("OutTorques", port_out_torques_);
 }
 
 TorquePublisher::~TorquePublisher() {

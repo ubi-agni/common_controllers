@@ -37,7 +37,7 @@ bool JointImpedance::configureHook() {
     RTT::log(RTT::Error) << "invalid configuration data size" << std::endl;
     return false;
   }
-  
+
   joint_torque_command_.resize(number_of_joints_);
   joint_error_.resize(number_of_joints_);
   nullspace_torque_command_ = Eigen::VectorXd::Zero(number_of_joints_);
@@ -54,7 +54,7 @@ bool JointImpedance::configureHook() {
   }
 
   port_joint_torque_command_.setDataSample(joint_torque_command_);
-  
+
   return true;
 }
 
@@ -69,7 +69,7 @@ void JointImpedance::stopHook() {
   for (int i = 0; i < joint_torque_command_.size(); i++) {
     joint_torque_command_(i) = 0.0;
   }
-  
+
   port_joint_torque_command_.write(joint_torque_command_);
 }
 
@@ -82,7 +82,7 @@ void JointImpedance::updateHook() {
 
   joint_error_.noalias() = joint_position_command_ - joint_position_;
   joint_torque_command_.noalias() = k_.cwiseProduct(joint_error_);
-  
+
   port_mass_matrix_.read(m_);
   tmpNN_ = k_.asDiagonal();
   es_.compute(tmpNN_, m_);

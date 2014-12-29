@@ -47,9 +47,6 @@ class CartesianImpedance: public RTT::TaskContext {
     this->ports()->addPort("JointVelocity", port_joint_velocity_);
     this->ports()->addPort("MassMatrixInv", port_mass_matrix_inv_);
 
-    this->ports()->addPort("Activation", port_activation_);
-    this->ports()->addPort("Projection", port_projection_);
-
     this->ports()->addPort("JointTorqueCommand",
                            port_joint_torque_command_);
     this->ports()->addPort("NullSpaceTorqueCommand",
@@ -106,8 +103,7 @@ class CartesianImpedance: public RTT::TaskContext {
     M.resize(N, N);
     Mi.resize(N, N);
     P.resize(N, N);
-    A.resize(N, N);
-    A.setZero();
+    A.resize(K * 6, K * 6);
     Q.resize(K * 6, K * 6);
     Dc.resize(K * 6, K * 6);
     K0.resize(K * 6);
@@ -263,24 +259,48 @@ class CartesianImpedance: public RTT::TaskContext {
 
     // calculate damping component
 
+#if 1
+    tmpNK_.noalias() = J * Mi;
+    A.noalias() = tmpNK_ * JT;
+    luKK_.compute(A);
+    A = luKK_.inverse();
+
+    tmpKK_ = Kc.asDiagonal();
+    UNRESTRICT_ALLOC;
+    es_.compute(tmpKK_, A);
+    RESTRICT_ALLOC;
+    K0 = es_.eigenvalues();
+    luKK_.compute(es_.eigenvectors());
+    Q = luKK_.inverse();
+
+    tmpKK_ = Dxi.asDiagonal();
+    Dc.noalias() = Q.transpose() * tmpKK_;
+    tmpKK_ = K0.cwiseSqrt().asDiagonal();
+    tmpKK2_.noalias() = Dc *  tmpKK_;
+    Dc.noalias() = tmpKK2_ * Q;
+    tmpK_.noalias() = J * joint_velocity_;
+    F.noalias() = Dc * tmpK_;
+    joint_torque_command_.noalias() -= JT * F;
+#else
     UNRESTRICT_ALLOC;
     tmpNN_.noalias() = JT * Kc.asDiagonal() * J;
 
-    es_.compute(tmpNN_, M);
+    es_.compute(tmpNN_, M, Eigen::ComputeEigenvectors | Eigen::BAx_lx);
 
     K0 = es_.eigenvalues();
-    Q = es_.eigenvectors().inverse();
+    Q = es_.eigenvectors();
     RESTRICT_ALLOC;
 
-    tmpNN_ = K0.cwiseAbs().cwiseSqrt().asDiagonal();
+    tmpNN_ = K0.cwiseSqrt().asDiagonal();
 
     UNRESTRICT_ALLOC;
-    Dc.noalias() = Q.transpose() * 0.7 * tmpNN_ * Q;
+    Dc.noalias() = Q * 0.7 * tmpNN_ * Q.adjoint();
     RESTRICT_ALLOC;
     joint_torque_command_.noalias() -= Dc * joint_velocity_;
+#endif
 
     // calculate null-space component
-/*
+
     tmpNK_.noalias() = J * Mi;
     tmpKK_.noalias() = tmpNK_ * JT;
     luKK_.compute(tmpKK_);
@@ -289,59 +309,12 @@ class CartesianImpedance: public RTT::TaskContext {
     Ji.noalias() = tmpKN_ * tmpKK_;
 
     P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-    P.noalias() -=  J.transpose() * Ji.transpose();
+    P.noalias() -=  J.transpose() * A * J * Mi;
 
     joint_torque_command_.noalias() += P * nullspace_torque_command_;
-*/
+
     // write outputs
     UNRESTRICT_ALLOC;
-    /*
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(J, Eigen::ComputeFullV);
-    
-    tmpNN_ = svd.matrixV();
-    
-    for (size_t i = 0; i < K*6; i++) {
-      if (Kc(i) < 0.1) {
-        if(Kc(i) > 0) {
-          A(i, i) = Kc(i)/0.1;
-        } else {
-          A(i, i) = 0.0;
-        }
-      } else {
-        A(i, i) = 1.0;
-      }
-    }
-    
-    P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-    P.noalias() -= M * tmpNN_*A*tmpNN_.transpose();
-    */
-    
-    tmpKN_ = J.normalized();
-    
-    P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
-    
-    for (int i = 0; i < K*6; i++) {
-      tmpN_ = J.row(i).normalized();
-      tmpNN_ = Eigen::MatrixXd::Identity(P.rows(), P.cols()) - tmpN_ * tmpN_.transpose();
-      P = P * tmpNN_.transpose();
-    }
-    
-    port_activation_.write(A);
-    port_projection_.write(P);
-    
-    //P = M * P;
-    /*
-    std::cout << " J : " << std::endl << std::endl << J << std::endl;
-    std::cout << " V : " << std::endl << std::endl << tmpNN_ << std::endl;
-    std::cout << " S : " << std::endl << std::endl << svd.singularValues() << std::endl;
-    std::cout << " A : " << std::endl << std::endl << A << std::endl;
-    std::cout << " P : " << std::endl << std::endl << P << std::endl;
-    std::cout << " M : " << std::endl << std::endl << M << std::endl;
-    std::cout << " M * P : " << std::endl << std::endl << M * P << std::endl;
-    
-    stop();
-    */
-    joint_torque_command_.noalias() += P * nullspace_torque_command_;
     port_joint_torque_command_.write(joint_torque_command_);
 
     for (size_t i = 0; i < K; i++) {
@@ -367,9 +340,6 @@ class CartesianImpedance: public RTT::TaskContext {
   RTT::InputPort<Eigen::VectorXd> port_joint_velocity_;
   RTT::InputPort<Eigen::MatrixXd> port_mass_matrix_inv_;
 
-  RTT::OutputPort<Eigen::MatrixXd> port_activation_;
-  RTT::OutputPort<Eigen::MatrixXd> port_projection_;
-  
   std::vector<RTT::InputPort<geometry_msgs::Pose>* > port_cartesian_position_command_;
   std::vector<RTT::OutputPort<geometry_msgs::Pose>* > port_cartesian_position_;
   std::vector<RTT::InputPort<geometry_msgs::Pose>* > port_tool_position_command_;
@@ -401,7 +371,7 @@ class CartesianImpedance: public RTT::TaskContext {
   Spring p;
   Force F;
   Eigen::MatrixXd tmpNK_, tmpKK_, tmpKK2_, tmpNN_, tmpKN_;
-  Eigen::VectorXd tmpK_, tmpN_;
+  Eigen::VectorXd tmpK_;
   int N, K;
 };
 
