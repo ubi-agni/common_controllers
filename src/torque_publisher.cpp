@@ -28,7 +28,7 @@ bool TorquePublisher::configureHook() {
   port_in_joint_torque_.getDataSample(joint_torque_);
   N_ = joint_torque_.size();
 
-  if (N_ <= 0) {
+  if (N_ == 0) {
     RTT::log(RTT::Error) << "Wrong size joint_torque vector: " << N_
                          << RTT::endlog();
     return false;
