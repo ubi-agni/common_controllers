@@ -34,6 +34,8 @@ bool PoseTransform::configureHook() {
     port_primary_frame_pose_[i] = new typeof(*port_primary_frame_pose_[i]);
     this->ports()->addPort(port_name, *port_primary_frame_pose_[i]);
   }
+  this->ports()->addPort("PrimaryTargetPassThrough", port_target_pass_through_pose_).doc(
+      "");
   this->ports()->addPort("PrimaryTargetPoint", port_primary_target_pose_).doc(
       "");
   this->ports()->addPort("PrimaryFrameSelector", port_primary_frame_selector_)
@@ -45,6 +47,7 @@ bool PoseTransform::configureHook() {
     primary_frame_status[i] = pose_none;
   }
   primary_target_status = pose_none;
+  target_pass_through_status = pose_none;
 
   // Initialize base frame
   primary_frame_pose_[0].position.x = 0;
@@ -79,6 +82,8 @@ void PoseTransform::updateHook() {
       tf::poseMsgToKDL(primary_frame_pose_[primary_frame_selector],
                        primary_frame[primary_frame_selector]);
     }
+  } else {
+    target_pass_through_status = pose_new;
   }
 
   if (port_primary_target_pose_.read(primary_target_pose_) == RTT::NewData) {
@@ -94,19 +99,37 @@ void PoseTransform::updateHook() {
     tf::poseMsgToKDL(primary_target_pose_, primary_target);
   }
 
-  // On any change of primary_frame or primary_target
-  if ((primary_frame_status[primary_frame_selector] + primary_target_status)
-      >= (pose_new + pose_old)) {
+  if (port_target_pass_through_pose_.read(target_pass_through_pose_) == RTT::NewData) {
+    target_pass_through_status = pose_new;
+    /*std::cout << "PT: p: ";
+     std::cout << primary_target_pose_.position.x << " ";
+     std::cout << primary_target_pose_.position.y << " ";
+     std::cout << primary_target_pose_.position.z << " o: ";
+     std::cout << primary_target_pose_.orientation.x << " ";
+     std::cout << primary_target_pose_.orientation.y << " ";
+     std::cout << primary_target_pose_.orientation.z << " ";
+     std::cout << primary_target_pose_.orientation.w << std::endl;*/
+  }
+
+  // On any change of primary_frame or primary_target or target_pass_through
+  if ((primary_frame_status[primary_frame_selector] + primary_target_status
+       + target_pass_through_status) >= (pose_new + pose_old + pose_old)) {
     primary_frame_status[primary_frame_selector] = pose_old;
     primary_target_status = pose_old;
+    target_pass_through_status = pose_old;
 
     // If you have a Frame F_A_B that expresses the pose of frame B wrt frame A,
     // and a Frame F_B_C that expresses the pose of frame C wrt to frame B,
     // the calculation of Frame F_A_C that expresses the pose of frame C wrt to frame A is as follows:
-    // Frame F_A_C = F_A_B * F_B_C;
-    secondary_target = primary_frame[primary_frame_selector] * primary_target;
+    if(primary_frame_selector <= (input_frames_)){
+      // Frame F_A_C = F_A_B * F_B_C;
+      secondary_target = primary_frame[primary_frame_selector] * primary_target;
 
-    tf::poseKDLToMsg(secondary_target, secondary_target_pose_);
+      tf::poseKDLToMsg(secondary_target, secondary_target_pose_);
+    }
+    else{
+      secondary_target_pose_ = target_pass_through_pose_;
+    }
     /*std::cout << "ST: p: ";
      std::cout << secondary_target_pose_.position.x << " ";
      std::cout << secondary_target_pose_.position.y << " ";

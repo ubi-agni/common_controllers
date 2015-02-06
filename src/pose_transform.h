@@ -41,6 +41,9 @@ class PoseTransform: public RTT::TaskContext {
   geometry_msgs::Pose primary_target_pose_;
   pose_status primary_target_status;
   KDL::Frame primary_target;
+  geometry_msgs::Pose target_pass_through_pose_;
+  pose_status target_pass_through_status;
+  KDL::Frame target_pass_through;
 
   geometry_msgs::Pose secondary_target_pose_;
   KDL::Frame secondary_target;
@@ -48,6 +51,7 @@ class PoseTransform: public RTT::TaskContext {
 
   std::vector<RTT::InputPort<geometry_msgs::Pose>* > port_primary_frame_pose_;
   RTT::InputPort<geometry_msgs::Pose> port_primary_target_pose_;
+  RTT::InputPort<geometry_msgs::Pose> port_target_pass_through_pose_;
   RTT::InputPort<int> port_primary_frame_selector_;
   RTT::OutputPort<geometry_msgs::Pose> port_secondary_target_pose_;
 
