@@ -28,7 +28,7 @@ SimpleTransmisionInv::SimpleTransmisionInv(const std::string& name)
   this->addProperty("encoder_res", encoder_res_);
   this->addProperty("motor_offset", motor_offset_);
   this->addProperty("joint_offset", joint_offset_);
-  this->addProperty("motor_constant_", motor_constant_);
+  this->addProperty("motor_constant", motor_constant_);
 }
 
 SimpleTransmisionInv::~SimpleTransmisionInv() {
