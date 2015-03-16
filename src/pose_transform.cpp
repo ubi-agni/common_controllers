@@ -121,13 +121,12 @@ void PoseTransform::updateHook() {
     // If you have a Frame F_A_B that expresses the pose of frame B wrt frame A,
     // and a Frame F_B_C that expresses the pose of frame C wrt to frame B,
     // the calculation of Frame F_A_C that expresses the pose of frame C wrt to frame A is as follows:
-    if(primary_frame_selector <= (input_frames_)){
+    if (primary_frame_selector <= (input_frames_)){
       // Frame F_A_C = F_A_B * F_B_C;
       secondary_target = primary_frame[primary_frame_selector] * primary_target;
 
       tf::poseKDLToMsg(secondary_target, secondary_target_pose_);
-    }
-    else{
+    } else {
       secondary_target_pose_ = target_pass_through_pose_;
     }
     /*std::cout << "ST: p: ";
@@ -141,4 +140,3 @@ void PoseTransform::updateHook() {
     port_secondary_target_pose_.write(secondary_target_pose_);
   }
 }
-
