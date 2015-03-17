@@ -16,6 +16,7 @@ PoseTransform::PoseTransform(const std::string &name)
   // variable init
   primary_frame_selector = 0;
   primary_target_status = pose_none;
+  target_pass_through_status = pose_none;
 }
 
 PoseTransform::~PoseTransform() {
@@ -121,7 +122,7 @@ void PoseTransform::updateHook() {
     // If you have a Frame F_A_B that expresses the pose of frame B wrt frame A,
     // and a Frame F_B_C that expresses the pose of frame C wrt to frame B,
     // the calculation of Frame F_A_C that expresses the pose of frame C wrt to frame A is as follows:
-    if (primary_frame_selector <= (input_frames_)){
+    if (primary_frame_selector <= (input_frames_)) {
       // Frame F_A_C = F_A_B * F_B_C;
       secondary_target = primary_frame[primary_frame_selector] * primary_target;
 

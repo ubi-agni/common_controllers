@@ -183,7 +183,7 @@ class CartesianImpedance: public RTT::TaskContext {
 
   void updateHook() {
     RESTRICT_ALLOC;
-    ToolMass toolsM[K];
+    // ToolMass toolsM[K];
     Eigen::Affine3d r[K];
 
     // read inputs

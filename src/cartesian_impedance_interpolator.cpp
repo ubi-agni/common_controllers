@@ -19,8 +19,8 @@ CartesianImpedanceInterpolator::CartesianImpedanceInterpolator(
     const std::string& name)
     : RTT::TaskContext(name),
       trajectory_ptr_(0),
-      trajectory_active_(false),
-      last_point_not_set_(false)  {
+      last_point_not_set_(false),
+      trajectory_active_(false) {
   this->ports()->addPort("CartesianImpedance", port_cartesian_impedance_);
   this->ports()->addPort("CartesianImpedanceCommand",
                          port_cartesian_impedance_command_);
