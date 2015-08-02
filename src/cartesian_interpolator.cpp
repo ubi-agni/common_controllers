@@ -22,6 +22,8 @@ CartesianInterpolator::CartesianInterpolator(const std::string& name)
   this->ports()->addPort("CartesianPosition", port_cartesian_position_);
   this->ports()->addPort("CartesianPositionCommand", port_cartesian_command_);
   this->ports()->addPort("CartesianTrajectoryCommand", port_trajectory_);
+  this->ports()->addPort("GeneratorActiveOut", port_generator_active_);
+  this->ports()->addPort("IsSynchronisedIn", port_is_synchronised_);
 
   this->addProperty("activate_pose_init", activate_pose_init_property_);
   this->addProperty("init_setpoint", init_setpoint_property_);
@@ -35,6 +37,7 @@ bool CartesianInterpolator::configureHook() {
 }
 
 bool CartesianInterpolator::startHook() {
+  bool is_synchronised = true;
   if (activate_pose_init_property_) {
     setpoint_ = init_setpoint_property_;
   } else {
@@ -42,12 +45,24 @@ bool CartesianInterpolator::startHook() {
       return false;
     }
   }
+
+  port_is_synchronised_.read(is_synchronised);
+
+  if (!is_synchronised) {
+    return false;
+  }
+
   last_point_not_set_ = false;
   trajectory_active_ = false;
   return true;
 }
 
+void CartesianInterpolator::stopHook() {
+  port_generator_active_.write(false);
+}
+
 void CartesianInterpolator::updateHook() {
+  port_generator_active_.write(true);
   if (port_trajectory_.read(trajectory_) == RTT::NewData) {
     trajectory_ptr_ = 0;
     old_point_ = setpoint_;
