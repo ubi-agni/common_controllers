@@ -51,7 +51,7 @@ bool CartesianInterpolator::startHook() {
   if (!is_synchronised) {
     return false;
   }
-
+  port_generator_active_.write(true);
   last_point_not_set_ = false;
   trajectory_active_ = false;
   return true;
