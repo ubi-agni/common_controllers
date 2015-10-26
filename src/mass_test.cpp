@@ -50,13 +50,17 @@ void MassTest::updateHook() {
     error();
   }
 
-  robot_->inertia(M_, joint_position_, 0);
+  //robot_->inertia(M_, joint_position_, 0);
+
+  M_.setZero();
+
+  M_(0, 0) = 10.0;
 
   port_mass_matrix_left_.read(Ml_);
   port_mass_matrix_right_.read(Mr_);
 
-  M_.block<7, 7>(2, 2) = Mr_;
-  M_.block<7, 7>(9, 9) = Ml_;
+  M_.block<7, 7>(1, 1) = Mr_;
+  M_.block<7, 7>(8, 8) = Ml_;
 
   port_mass_matrix_.write(M_);
 }
