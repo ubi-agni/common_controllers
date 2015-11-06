@@ -144,14 +144,20 @@ class CartesianImpedance: public RTT::TaskContext {
       Dxi(i * 6 + 4) = 0.7;
       Dxi(i * 6 + 5) = 0.7;
 
-      tools[i](0) = 0;
-      tools[i](1) = 0;
-      tools[i](2) = 0;
+      geometry_msgs::Pose pos;
+      if (port_tool_position_command_[i]->read(pos) == RTT::NewData) {
+        tools[i](0) = pos.position.x;
+        tools[i](1) = pos.position.y;
+        tools[i](2) = pos.position.z;
 
-      tools[i](3) = 1;
-      tools[i](4) = 0;
-      tools[i](5) = 0;
-      tools[i](6) = 0;
+        tools[i](3) = pos.orientation.w;
+        tools[i](4) = pos.orientation.x;
+        tools[i](5) = pos.orientation.y;
+        tools[i](6) = pos.orientation.z;
+      }
+      else {
+        return false;
+      }
     }
 
     for (size_t i = 0; i < N; i++) {
