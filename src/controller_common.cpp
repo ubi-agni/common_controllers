@@ -10,7 +10,7 @@
 #include "controller_common/vector_concate.h"
 #include "controller_common/vector_split.h"
 #include "controller_common/decimator.h"
-#include "controller_common/cartesian_impedance.h"
+#include "cartesian_impedance.h"
 #include "cartesian_interpolator.h"
 #include "cartesian_trajectory_action.h"
 #include "joint_limit_avoidance.h"
