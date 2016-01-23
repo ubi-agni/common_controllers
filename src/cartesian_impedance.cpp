@@ -21,13 +21,13 @@
     N = 0;
     K = 0;
 
-    this->ports()->addPort("JointPosition", port_joint_position_);
-    this->ports()->addPort("JointVelocity", port_joint_velocity_);
-    this->ports()->addPort("MassMatrixInv", port_mass_matrix_inv_);
+    this->ports()->addPort("JointPosition_INPORT", port_joint_position_);
+    this->ports()->addPort("JointVelocity_INPORT", port_joint_velocity_);
+    this->ports()->addPort("MassMatrixInv_INPORT", port_mass_matrix_inv_);
 
-    this->ports()->addPort("JointTorqueCommand",
+    this->ports()->addPort("JointTorqueCommand_OUTPORT",
                            port_joint_torque_command_);
-    this->ports()->addPort("NullSpaceTorqueCommand",
+    this->ports()->addPort("NullSpaceTorqueCommand_INPORT",
                            port_nullspace_torque_command_);
   }
 
@@ -49,19 +49,19 @@
 
     for (size_t i = 0; i < K; i++) {
       char name[30];
-      snprintf(name, sizeof(name), "CartesianPositionCommand%zu", i);
+      snprintf(name, sizeof(name), "CartesianPositionCommand%zu_INPORT", i);
       port_cartesian_position_command_[i] = new typeof(*port_cartesian_position_command_[i]);
       this->ports()->addPort(name, *port_cartesian_position_command_[i]);
 
-      snprintf(name, sizeof(name), "CartesianPosition%zu", i);
+      snprintf(name, sizeof(name), "CartesianPosition%zu_OUTPORT", i);
       port_cartesian_position_[i] = new typeof(*port_cartesian_position_[i]);
       this->ports()->addPort(name, *port_cartesian_position_[i]);
 
-      snprintf(name, sizeof(name), "ToolPositionCommand%zu", i);
+      snprintf(name, sizeof(name), "ToolPositionCommand%zu_INPORT", i);
       port_tool_position_command_[i] = new typeof(*port_tool_position_command_[i]);
       this->ports()->addPort(name, *port_tool_position_command_[i]);
 
-      snprintf(name, sizeof(name), "CartesianImpedanceCommand%zu", i);
+      snprintf(name, sizeof(name), "CartesianImpedanceCommand%zu_INPORT", i);
       port_cartesian_impedance_command_[i] = new typeof(*port_cartesian_impedance_command_[i]);
       this->ports()->addPort(name, *port_cartesian_impedance_command_[i]);
     }
