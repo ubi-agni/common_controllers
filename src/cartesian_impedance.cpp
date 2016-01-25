@@ -49,7 +49,7 @@
 
     for (size_t i = 0; i < K; i++) {
       char name[30];
-      snprintf(name, sizeof(name), "CartesianPositionCommand%zu_INPORT", i);
+      snprintf(name, sizeof(name), "CartPositionCommand%zu_INPORT", i);
       port_cartesian_position_command_[i] = new typeof(*port_cartesian_position_command_[i]);
       this->ports()->addPort(name, *port_cartesian_position_command_[i]);
 
@@ -61,7 +61,7 @@
       port_tool_position_command_[i] = new typeof(*port_tool_position_command_[i]);
       this->ports()->addPort(name, *port_tool_position_command_[i]);
 
-      snprintf(name, sizeof(name), "CartesianImpedanceCommand%zu_INPORT", i);
+      snprintf(name, sizeof(name), "CartImpedanceCommand%zu_INPORT", i);
       port_cartesian_impedance_command_[i] = new typeof(*port_cartesian_impedance_command_[i]);
       this->ports()->addPort(name, *port_cartesian_impedance_command_[i]);
     }
