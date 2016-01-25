@@ -14,8 +14,8 @@ using ::cartesian_trajectory_msgs::CartesianImpedanceTrajectory;
 using ::cartesian_trajectory_msgs::CartesianImpedanceTrajectoryConstPtr;
 
 CartesianImpedanceAction::CartesianImpedanceAction(const std::string& name) : RTT::TaskContext(name) {
-  this->ports()->addPort("CartesianImpedanceTrajectoryCommand", port_cartesian_trajectory_command_);
-  this->ports()->addPort("impedance", port_cartesian_trajectory_);
+  this->ports()->addPort("CartesianImpedanceTrajectoryCommand_OUTPORT", port_cartesian_trajectory_command_);
+  this->ports()->addPort("impedance_INPORT", port_cartesian_trajectory_);
 
   as_.addPorts(this->provides());
 

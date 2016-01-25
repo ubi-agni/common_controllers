@@ -12,11 +12,11 @@
 
 JointLimitAvoidance::JointLimitAvoidance(const std::string& name) :
   RTT::TaskContext(name, PreOperational), number_of_joints_(0) {
-  this->ports()->addPort("JointPosition", port_joint_position_);
-  this->ports()->addPort("JointVelocity", port_joint_velocity_);
-  this->ports()->addPort("MassMatrix", port_mass_matrix_);
-  this->ports()->addPort("JointTorqueCommand", port_joint_torque_command_);
-  this->ports()->addPort("NullSpaceTorqueCommand",
+  this->ports()->addPort("JointPosition_INPORT", port_joint_position_);
+  this->ports()->addPort("JointVelocity_INPORT", port_joint_velocity_);
+  this->ports()->addPort("MassMatrix_INPORT", port_mass_matrix_);
+  this->ports()->addPort("JointTorqueCommand_OUTPORT", port_joint_torque_command_);
+  this->ports()->addPort("NullSpaceTorqueCommand_INPORT",
                          port_nullspace_torque_command_);
 
   this->properties()->addProperty("upper_limit", upper_limit_);
