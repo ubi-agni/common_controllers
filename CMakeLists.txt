@@ -7,15 +7,15 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_ros
   cartesian_trajectory_msgs
   eigen_conversions
-  kdl_conversions cmake_modules
+  kdl_conversions
   )
 
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(orocos_kdl REQUIRED)
 
 link_directories(${orocos_kdl_LIBRARY_DIRS})
 
-include_directories(${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS})
+include_directories(${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
 
 ### Orocos Dependencies ###
 # Note that orocos_use_package() does not need to be called for any dependency
@@ -27,7 +27,6 @@ ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
 
 orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/joint_limit_avoidance.cpp src/robot_mass_matrix.cpp src/mass_test.cpp src/cartesian_impedance_interpolator.cpp src/cartesian_impedance_action.cpp src/pose_transform.cpp src/tf_publisher.cpp src/torque_publisher.cpp src/simple_transmision.cpp src/simple_transmision_inv.cpp src/cartesian_impedance.cpp)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES})
-add_dependencies(controller_common ${PROJECT_NAME}_gencpp)
 
 ### Orocos Package Exports and Install Targets ###
 
