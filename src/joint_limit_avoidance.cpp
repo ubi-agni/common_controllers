@@ -29,38 +29,85 @@ JointLimitAvoidance::~JointLimitAvoidance() {
 }
 
 bool JointLimitAvoidance::configureHook() {
-  port_joint_position_.getDataSample(joint_position_);
-  port_joint_velocity_.getDataSample(joint_velocity_);
-  port_mass_matrix_.getDataSample(m_);
+    RTT::Logger::In in("JointLimitAvoidance::configureHook");
 
-  number_of_joints_ = joint_position_.size();
+    port_joint_position_.getDataSample(joint_position_);
+    if (joint_position_.size() == 0) {
+        RTT::log(RTT::Error) << "wrong data sample on port " << port_joint_position_.getName() << RTT::endlog();
+        return false;
+    }
 
-  if (number_of_joints_ == 0) {
-    RTT::log(RTT::Error) << "invalid joint position data sample" << std::endl;
-    return false;
-  }
+    number_of_joints_ = joint_position_.size();
 
-  if ((upper_limit_.size() != number_of_joints_)
-      && (lower_limit_.size() != number_of_joints_)
-      && (limit_range_.size() != number_of_joints_)
-      && (max_trq_.size() != number_of_joints_)) {
-    RTT::log(RTT::Error) << "invalid configuration data size" << std::endl;
-    return false;
-  }
-  joint_torque_command_.resize(number_of_joints_);
-  nullspace_torque_command_ = Eigen::VectorXd::Zero(number_of_joints_);
-  k_.resize(number_of_joints_);
-  q_.resizeLike(m_);
-  k0_.resizeLike(m_);
-  es_ = Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd >(number_of_joints_);
+    port_joint_velocity_.getDataSample(joint_velocity_);
+    if (joint_velocity_.size() != number_of_joints_) {
+        RTT::log(RTT::Error) << "wrong data sample on port " << port_joint_velocity_.getName() << RTT::endlog();
+        return false;
+    }
 
-  return true;
+    port_mass_matrix_.getDataSample(m_);
+    if (m_.rows() != number_of_joints_ || m_.cols() != number_of_joints_) {
+        RTT::log(RTT::Error) << "wrong data sample on port " << port_mass_matrix_.getName() << RTT::endlog();
+        return false;
+    }
+
+    if ((upper_limit_.size() != number_of_joints_)
+        && (lower_limit_.size() != number_of_joints_)
+        && (limit_range_.size() != number_of_joints_)
+        && (max_trq_.size() != number_of_joints_)) {
+        RTT::log(RTT::Error) << "invalid configuration data size" << RTT::endlog();
+        return false;
+    }
+    joint_torque_command_.resize(number_of_joints_);
+    nullspace_torque_command_ = Eigen::VectorXd::Zero(number_of_joints_);
+    k_.resize(number_of_joints_);
+    q_.resizeLike(m_);
+    k0_.resizeLike(m_);
+    es_ = Eigen::GeneralizedSelfAdjointEigenSolver<Eigen::MatrixXd >(number_of_joints_);
+
+    return true;
 }
 
 void JointLimitAvoidance::updateHook() {
-  port_joint_position_.read(joint_position_);
-  port_joint_velocity_.read(joint_velocity_);
-  port_nullspace_torque_command_.read(nullspace_torque_command_);
+  RTT::Logger::In in("JointLimitAvoidance::updateHook");
+
+  if (port_joint_position_.read(joint_position_) != RTT::NewData) {
+    error();
+    RTT::log(RTT::Error) << "could not read port: " << port_joint_position_.getName() << RTT::endlog();
+    return;
+  }
+  if (joint_position_.size() != number_of_joints_) {
+    error();
+    RTT::log(RTT::Error) << "wrong data size: " << joint_position_.size()
+                         << " on port: " << port_joint_position_.getName()
+                         << RTT::endlog();
+    return;
+  }
+
+  if (port_joint_velocity_.read(joint_velocity_) != RTT::NewData) {
+    error();
+    RTT::log(RTT::Error) << "could not read port: " << port_joint_velocity_.getName() << RTT::endlog();
+    return;
+  }
+  if (joint_velocity_.size() != number_of_joints_) {
+    error();
+    RTT::log(RTT::Error) << "wrong data size: " << joint_velocity_.size()
+                         << " on port: " << port_joint_velocity_.getName()
+                         << RTT::endlog();
+    return;
+  }
+
+  if (port_nullspace_torque_command_.read(nullspace_torque_command_) != RTT::NewData) {
+    // this is acceptable
+    nullspace_torque_command_.setZero();
+  }
+  if (nullspace_torque_command_.size() != number_of_joints_) {
+    error();
+    RTT::log(RTT::Error) << "wrong data size: " << nullspace_torque_command_.size()
+                         << " on port: " << port_nullspace_torque_command_.getName()
+                         << RTT::endlog();
+    return;
+  }
 
   for (size_t i = 0; i < number_of_joints_; i++) {
     joint_torque_command_(i) = jointLimitTrq(upper_limit_[i],
@@ -73,7 +120,18 @@ void JointLimitAvoidance::updateHook() {
     }
   }
 
-  port_mass_matrix_.read(m_);
+  if (port_mass_matrix_.read(m_) != RTT::NewData) {
+    error();
+    RTT::log(RTT::Error) << "could not read port: " << port_mass_matrix_.getName() << RTT::endlog();
+    return;
+  }
+
+  if (m_.cols() != number_of_joints_ || m_.rows() != number_of_joints_) {
+    error();
+    RTT::log(RTT::Error) << "invalid mass matrix size: " << m_.cols() << " " << m_.rows() << RTT::endlog();
+    return;
+  }
+
   tmpNN_ = k_.asDiagonal();
   es_.compute(tmpNN_, m_);
   q_ = es_.eigenvectors().inverse();

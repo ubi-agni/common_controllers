@@ -105,6 +105,7 @@
   }
 
   bool CartesianImpedance::startHook() {
+    RTT::Logger::In in("CartesianImpedance::startHook");
     RESTRICT_ALLOC;
 
     for (size_t i = 0; i < K; i++) {
@@ -166,14 +167,33 @@
   }
 
   void CartesianImpedance::updateHook() {
+    RTT::Logger::In in("CartesianImpedance::updateHook");
+
     RESTRICT_ALLOC;
     // ToolMass toolsM[K];
     Eigen::Affine3d r[K];
 
     // read inputs
     port_joint_position_.read(joint_position_);
+    if (!joint_position_.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "joint_position_ contains NaN or inf" << RTT::endlog();
+        return;
+    }
+
     port_joint_velocity_.read(joint_velocity_);
+    if (!joint_velocity_.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "joint_velocity_ contains NaN or inf" << RTT::endlog();
+        return;
+    }
+
     port_nullspace_torque_command_.read(nullspace_torque_command_);
+    if (!nullspace_torque_command_.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "nullspace_torque_command_ contains NaN or inf" << RTT::endlog();
+        return;
+    }
 
     for (size_t i = 0; i < K; i++) {
       geometry_msgs::Pose pos;
@@ -213,14 +233,32 @@
 
     port_mass_matrix_inv_.read(M);
 
+    if (!M.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "M contains NaN or inf" << RTT::endlog();
+        return;
+    }
+
     // calculate robot data
     robot_->jacobian(J, joint_position_, &tools[0]);
+
+    if (!J.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "J contains NaN or inf" << RTT::endlog();
+        return;
+    }
 
     robot_->fkin(r, joint_position_, &tools[0]);
 
     JT = J.transpose();
     lu_.compute(M);
     Mi = lu_.inverse();
+
+    if (!Mi.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "Mi contains NaN or inf" << RTT::endlog();
+        return;
+    }
 
     // calculate stiffness component
     for (size_t i = 0; i < K; i++) {
@@ -240,6 +278,12 @@
 
     F.noalias() = (Kc.array() * p.array()).matrix();
     joint_torque_command_.noalias() = JT * F;
+
+    if (!joint_torque_command_.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "joint_torque_command_ contains NaN or inf" << RTT::endlog();
+        return;
+    }
 
     // calculate damping component
 
@@ -264,6 +308,13 @@
     Dc.noalias() = tmpKK2_ * Q;
     tmpK_.noalias() = J * joint_velocity_;
     F.noalias() = Dc * tmpK_;
+
+    if (!F.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "F contains NaN or inf" << RTT::endlog();
+        return;
+    }
+
     joint_torque_command_.noalias() -= JT * F;
 #else
     UNRESTRICT_ALLOC;
@@ -294,6 +345,12 @@
 
     P.noalias() = Eigen::MatrixXd::Identity(P.rows(), P.cols());
     P.noalias() -=  J.transpose() * A * J * Mi;
+
+    if (!P.allFinite()) {
+        error();
+        RTT::log(RTT::Error) << "P contains NaN or inf" << RTT::endlog();
+        return;
+    }
 
     joint_torque_command_.noalias() += P * nullspace_torque_command_;
 

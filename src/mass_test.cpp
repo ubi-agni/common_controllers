@@ -24,6 +24,8 @@ MassTest::~MassTest() {
 }
 
 bool MassTest::configureHook() {
+  RTT::Logger::In in("MassTest::configureHook");
+
   robot_ = this->getProvider<controller_common::Robot>("robot");
   if (!robot_) {
     RTT::log(RTT::Error) << "Unable to load RobotService"
@@ -34,13 +36,29 @@ bool MassTest::configureHook() {
   number_of_joints_ = robot_->dofs();
   number_of_effectors_ = robot_->effectors();
 
+  if (number_of_joints_ == 0) {
+    RTT::log(RTT::Error) << "wrong number of joints: 0"
+                         << RTT::endlog();
+    return false;
+  }
+
+  if (number_of_effectors_ == 0) {
+    RTT::log(RTT::Error) << "wrong number of effectors: 0"
+                         << RTT::endlog();
+    return false;
+  }
+
   joint_position_.resize(number_of_joints_);
   M_.resize(number_of_joints_, number_of_joints_);
+
+  port_mass_matrix_.setDataSample(M_);
 
   return true;
 }
 
 void MassTest::updateHook() {
+  RTT::Logger::In in("MassTest::updateHook");
+
   port_joint_position_.read(joint_position_);
 
   if (joint_position_.size() != number_of_joints_) {
@@ -48,6 +66,7 @@ void MassTest::updateHook() {
                          << joint_position_.size() << " expected: " << number_of_joints_
                          << "]" << RTT::endlog();
     error();
+    return;
   }
 
   //robot_->inertia(M_, joint_position_, 0);
@@ -56,8 +75,38 @@ void MassTest::updateHook() {
 
   M_(0, 0) = 10.0;
 
-  port_mass_matrix_left_.read(Ml_);
-  port_mass_matrix_right_.read(Mr_);
+  if (port_mass_matrix_left_.read(Ml_) != RTT::NewData) {
+    RTT::log(RTT::Error) << "could not receive data on port "
+                         << port_mass_matrix_left_.getName()
+                         << RTT::endlog();
+    error();
+    return;
+  }
+  if (Ml_.rows() == 0 || Ml_.cols() == 0) {
+    RTT::log(RTT::Error) << "invalid size of data received on port "
+                         << port_mass_matrix_left_.getName()
+                         << ": " << Ml_.rows() << " " << Ml_.cols()
+                         << RTT::endlog();
+    error();
+    return;
+  }
+
+  if (port_mass_matrix_right_.read(Mr_) != RTT::NewData) {
+    RTT::log(RTT::Error) << "could not receive data on port "
+                         << port_mass_matrix_left_.getName()
+                         << RTT::endlog();
+    error();
+    return;
+  }
+
+  if (Mr_.rows() == 0 || Mr_.cols() == 0) {
+    RTT::log(RTT::Error) << "invalid size of data received on port "
+                         << port_mass_matrix_right_.getName()
+                         << ": " << Mr_.rows() << " " << Mr_.cols()
+                         << RTT::endlog();
+    error();
+    return;
+  }
 
   M_.block<7, 7>(1, 1) = Mr_;
   M_.block<7, 7>(8, 8) = Ml_;
