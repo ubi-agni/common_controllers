@@ -11,6 +11,8 @@
 
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
 #include "cartesian_trajectory_msgs/CartesianTrajectory.h"
@@ -20,8 +22,6 @@
 
 #include "rtt_actionlib/rtt_actionlib.h"
 #include "rtt_actionlib/rtt_action_server.h"
-
-#include "Eigen/Dense"
 
 class CartesianTrajectoryAction: public RTT::TaskContext {
  private:

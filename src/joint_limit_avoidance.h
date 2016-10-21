@@ -12,10 +12,10 @@
 #include <string>
 #include <vector>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
-
-#include "Eigen/Dense"
 
 class JointLimitAvoidance: public RTT::TaskContext {
  public:

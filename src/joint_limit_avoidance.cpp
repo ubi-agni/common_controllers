@@ -69,14 +69,14 @@ bool JointLimitAvoidance::configureHook() {
 }
 
 void JointLimitAvoidance::updateHook() {
-  RTT::Logger::In in("JointLimitAvoidance::updateHook");
-
   if (port_joint_position_.read(joint_position_) != RTT::NewData) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "could not read port: " << port_joint_position_.getName() << RTT::endlog();
     return;
   }
   if (joint_position_.size() != number_of_joints_) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "wrong data size: " << joint_position_.size()
                          << " on port: " << port_joint_position_.getName()
@@ -85,11 +85,13 @@ void JointLimitAvoidance::updateHook() {
   }
 
   if (port_joint_velocity_.read(joint_velocity_) != RTT::NewData) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "could not read port: " << port_joint_velocity_.getName() << RTT::endlog();
     return;
   }
   if (joint_velocity_.size() != number_of_joints_) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "wrong data size: " << joint_velocity_.size()
                          << " on port: " << port_joint_velocity_.getName()
@@ -102,6 +104,7 @@ void JointLimitAvoidance::updateHook() {
     nullspace_torque_command_.setZero();
   }
   if (nullspace_torque_command_.size() != number_of_joints_) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "wrong data size: " << nullspace_torque_command_.size()
                          << " on port: " << port_nullspace_torque_command_.getName()
@@ -121,12 +124,14 @@ void JointLimitAvoidance::updateHook() {
   }
 
   if (port_mass_matrix_.read(m_) != RTT::NewData) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "could not read port: " << port_mass_matrix_.getName() << RTT::endlog();
     return;
   }
 
   if (m_.cols() != number_of_joints_ || m_.rows() != number_of_joints_) {
+    RTT::Logger::In in("JointLimitAvoidance::updateHook");
     error();
     RTT::log(RTT::Error) << "invalid mass matrix size: " << m_.cols() << " " << m_.rows() << RTT::endlog();
     return;

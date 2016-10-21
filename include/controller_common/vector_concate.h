@@ -3,10 +3,10 @@
 #ifndef VECTOR_CONCATE_H_
 #define VECTOR_CONCATE_H_
 
+#include "eigen_patch/eigen_patch.h"
+
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>
-
-#include <Eigen/Dense>
 
 #include <vector>
 #include <string>
@@ -14,23 +14,32 @@
 template <int N>
 class VectorConcate : public RTT::TaskContext {
  public:
-  explicit VectorConcate(const std::string & name) : RTT::TaskContext(name, PreOperational) {
+  explicit VectorConcate(const std::string & name) :
+    RTT::TaskContext(name, PreOperational),
+    port_output_("Out", false) {
+
     for (size_t i = 0; i < N; i++) {
       char port_name[10];
       snprintf(port_name, sizeof(port_name), "In%zu", i);
       this->ports()->addPort(port_name, port_inputs_[i]);
     }
 
-    this->ports()->addPort("Out", port_output_);
+    this->ports()->addPort(port_output_);
   }
 
   ~VectorConcate() {
   }
 
   bool configureHook() {
+    RTT::Logger::In in(std::string("VectorConcate::configureHook ") + this->getName());
     size_t size = 0;
     for (size_t i = 0; i < N; i++) {
       port_inputs_[i].getDataSample(inputs_[i]);
+      if (inputs_[i].size() == 0) {
+        RTT::log(RTT::Error) << "data sample on port " << port_inputs_[i].getName()
+                             << " is not set" << RTT::endlog();
+        return false;
+      }
       size += inputs_[i].size();
     }
 

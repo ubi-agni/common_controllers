@@ -11,10 +11,10 @@
 
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
-
-#include <Eigen/Dense>
 
 #include "std_msgs/Float64MultiArray.h"
 

@@ -11,13 +11,13 @@
 
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
 
 #include "cartesian_trajectory_msgs/CartesianTrajectory.h"
 #include "geometry_msgs/Pose.h"
-
-#include "Eigen/Dense"
 
 class CartesianInterpolator : public RTT::TaskContext {
  public:

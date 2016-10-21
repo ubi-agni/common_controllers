@@ -13,17 +13,27 @@
 #include "rtt_rosclock/rtt_rosclock.h"
 #include "Eigen/Geometry"
 
+using namespace RTT;
+
 CartesianInterpolator::CartesianInterpolator(const std::string& name)
     : RTT::TaskContext(name),
       trajectory_ptr_(0),
       activate_pose_init_property_(false),
       last_point_not_set_(false),
-      trajectory_active_(false) {
-  this->ports()->addPort("CartesianPosition", port_cartesian_position_);
-  this->ports()->addPort("CartesianPositionCommand", port_cartesian_command_);
-  this->ports()->addPort("CartesianTrajectoryCommand", port_trajectory_);
-  this->ports()->addPort("GeneratorActiveOut", port_generator_active_);
-  this->ports()->addPort("IsSynchronisedIn", port_is_synchronised_);
+      trajectory_active_(false),
+      port_cartesian_position_("CartesianPosition_INPORT"),
+      port_cartesian_command_("CartesianPositionCommand_OUTPORT", false),
+      port_trajectory_("CartesianTrajectoryCommand_INPORT"),
+      port_generator_active_("GeneratorActiveOut_OUTPORT", false),
+      port_is_synchronised_("IsSynchronised_INPORT") {
+
+  this->ports()->addPort(port_cartesian_position_);
+  this->ports()->addPort(port_cartesian_command_);
+  this->ports()->addPort(port_trajectory_);
+  this->ports()->addPort(port_generator_active_);
+  this->ports()->addPort(port_is_synchronised_);
+
+  port_cartesian_command_.setDataSample(setpoint_);
 
   this->addProperty("activate_pose_init", activate_pose_init_property_);
   this->addProperty("init_setpoint", init_setpoint_property_);
@@ -41,7 +51,10 @@ bool CartesianInterpolator::startHook() {
   if (activate_pose_init_property_) {
     setpoint_ = init_setpoint_property_;
   } else {
-    if (port_cartesian_position_.read(setpoint_) == RTT::NoData) {
+    if (port_cartesian_position_.read(setpoint_) != RTT::NewData) {
+      Logger::In in("CartesianInterpolator::startHook");
+      Logger::log() << Logger::Error << "could not read data on port "
+                    << port_cartesian_position_.getName() << Logger::endl;
       return false;
     }
   }

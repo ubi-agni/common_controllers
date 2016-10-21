@@ -11,8 +11,9 @@
 
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/RTT.hpp"
-#include "Eigen/Dense"
 
 namespace controller_common {
 class Robot : public RTT::ServiceRequester {

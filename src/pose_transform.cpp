@@ -10,8 +10,20 @@
 
 #include <string>
 
-PoseTransform::PoseTransform(const std::string &name)
-    : RTT::TaskContext(name, PreOperational) {
+PoseTransform::PoseTransform(const std::string &name) :
+    RTT::TaskContext(name, PreOperational),
+    port_target_pass_through_pose_("PrimaryTargetPassThrough_INPORT"),
+    port_primary_target_pose_("PrimaryTargetPoint_INPORT"),
+    port_primary_frame_selector_("PrimaryFrameSelector_INPORT"),
+    port_secondary_target_pose_("SecondaryTargetPoint_OUTPORT", false) {
+
+  this->ports()->addPort(port_target_pass_through_pose_);
+  this->ports()->addPort(port_primary_target_pose_);
+  this->ports()->addPort(port_primary_frame_selector_);
+  this->ports()->addPort(port_secondary_target_pose_);
+
+  port_secondary_target_pose_.setDataSample(secondary_target_pose_);
+
   this->addProperty("input_frames", input_frames_);
   // variable init
   primary_frame_selector = 0;
@@ -35,14 +47,6 @@ bool PoseTransform::configureHook() {
     port_primary_frame_pose_[i] = new typeof(*port_primary_frame_pose_[i]);
     this->ports()->addPort(port_name, *port_primary_frame_pose_[i]);
   }
-  this->ports()->addPort("PrimaryTargetPassThrough", port_target_pass_through_pose_).doc(
-      "");
-  this->ports()->addPort("PrimaryTargetPoint", port_primary_target_pose_).doc(
-      "");
-  this->ports()->addPort("PrimaryFrameSelector", port_primary_frame_selector_)
-      .doc("");
-  this->ports()->addPort("SecondaryTargetPoint", port_secondary_target_pose_)
-      .doc("");
 
   for (size_t i = 0; i <= input_frames_; i++) {
     primary_frame_status[i] = pose_none;
@@ -61,7 +65,6 @@ bool PoseTransform::configureHook() {
   primary_frame_status[0] = pose_old;
   // Default primary frame is base
   primary_frame_selector = 0;
-  port_secondary_target_pose_.setDataSample(secondary_target_pose_);
   return true;
 }
 

@@ -5,23 +5,28 @@
 #include <vector>
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
-
-#include "Eigen/Dense"
 
 template <int N>
 class VectorSplit : public RTT::TaskContext {
  public:
-  explicit VectorSplit(const std::string & name) : TaskContext(name, PreOperational), size_(0) {
+  explicit VectorSplit(const std::string & name) :
+    TaskContext(name, PreOperational),
+    size_(0),
+    port_input_("In") {
+
     this->addProperty("outputs", out_);
     for (size_t i = 0; i < N; i++) {
       char port_name[10];
       snprintf(port_name, sizeof(port_name), "Out%zu", i);
       this->ports()->addPort(port_name, port_outputs_[i]);
+      port_outputs_[i].keepLastWrittenValue(false);
     }
 
-    this->ports()->addPort("In", port_input_);
+    this->ports()->addPort(port_input_);
   }
 
   ~VectorSplit() {

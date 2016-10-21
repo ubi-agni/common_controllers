@@ -16,12 +16,19 @@
 using ::cartesian_trajectory_msgs::CartesianTrajectory;
 using cartesian_trajectory_msgs::CartesianTrajectoryConstPtr;
 
-CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) : RTT::TaskContext(name) {
-  this->ports()->addPort("CartesianTrajectoryCommand", port_cartesian_trajectory_command_);
-  this->ports()->addPort("trajectory", port_cartesian_trajectory_);
-  this->ports()->addPort("CartesianPosition", port_cartesian_position_);
-  this->ports()->addPort("CartesianPositionCommand", port_cartesian_position_command_);
-  this->ports()->addPort("CartesianWrench", port_cartesian_wrench_);
+CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) :
+    RTT::TaskContext(name),
+    port_cartesian_trajectory_command_("CartesianTrajectoryCommand_OUTPORT", false),
+    port_cartesian_trajectory_("trajectory_INPORT"),
+    port_cartesian_position_("CartesianPosition_INPORT"),
+    port_cartesian_position_command_("CartesianPositionCommand_INPORT"),
+    port_cartesian_wrench_("CartesianWrench_INPORT") {
+
+  this->ports()->addPort(port_cartesian_trajectory_command_);
+  this->ports()->addPort(port_cartesian_trajectory_);
+  this->ports()->addPort(port_cartesian_position_);
+  this->ports()->addPort(port_cartesian_position_command_);
+  this->ports()->addPort(port_cartesian_wrench_);
 
   as_.addPorts(this->provides());
 

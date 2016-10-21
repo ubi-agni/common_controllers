@@ -16,16 +16,17 @@ using ::cartesian_trajectory_msgs::CartesianImpedance;
 using ::cartesian_trajectory_msgs::CartesianImpedanceTrajectoryPoint;
 
 CartesianImpedanceInterpolator::CartesianImpedanceInterpolator(
-    const std::string& name)
-    : RTT::TaskContext(name),
+    const std::string& name) :
+      RTT::TaskContext(name),
       trajectory_ptr_(0),
       last_point_not_set_(false),
-      trajectory_active_(false) {
-  this->ports()->addPort("CartesianImpedance", port_cartesian_impedance_);
-  this->ports()->addPort("CartesianImpedanceCommand",
-                         port_cartesian_impedance_command_);
-  this->ports()->addPort("CartesianImpedanceTrajectoryCommand",
-                         port_trajectory_);
+      trajectory_active_(false),
+      port_cartesian_impedance_command_("CartesianImpedanceCommand_OUTPORT", false),
+      port_cartesian_impedance_("CartesianImpedance_INPORT"),
+      port_trajectory_("CartesianImpedanceTrajectoryCommand_INPORT") {
+  this->ports()->addPort(port_cartesian_impedance_);
+  this->ports()->addPort(port_cartesian_impedance_command_);
+  this->ports()->addPort(port_trajectory_);
 }
 
 CartesianImpedanceInterpolator::~CartesianImpedanceInterpolator() {

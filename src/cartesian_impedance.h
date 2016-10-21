@@ -14,10 +14,10 @@
 #include <vector>
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/RTT.hpp"
 #include "rtt/os/TimeService.hpp"
-#include "Eigen/Dense"
-#include "Eigen/LU"
 
 #include "controller_common/robot.h"
 

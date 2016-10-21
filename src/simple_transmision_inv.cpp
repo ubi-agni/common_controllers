@@ -16,13 +16,20 @@ SimpleTransmisionInv::SimpleTransmisionInv(const std::string& name)
     encoder_res_(1.0),
     motor_offset_(0.0),
     joint_offset_(0.0),
-    motor_constant_(0.0) {
-  this->ports()->addPort("MotorPosition", port_motor_position_);
-  this->ports()->addPort("MotorVelocity", port_motor_velocity_);
-  this->ports()->addPort("JointPosition", port_joint_position_);
-  this->ports()->addPort("JointVelocity", port_joint_velocity_);
-  this->ports()->addPort("MotorCurrent", port_motor_current_);
-  this->ports()->addPort("JointTorque", port_joint_torque_);
+    motor_constant_(0.0),
+    port_motor_position_("MotorPosition_OUTPORT", false),
+    port_motor_velocity_("MotorVelocity_OUTPORT", false),
+    port_joint_position_("JointPosition_INPORT"),
+    port_joint_velocity_("JointVelocity_INPORT"),
+    port_motor_current_("MotorCurrent_OUTPORT", false),
+    port_joint_torque_("JointTorque_INPORT") {
+
+  this->ports()->addPort(port_motor_position_);
+  this->ports()->addPort(port_motor_velocity_);
+  this->ports()->addPort(port_joint_position_);
+  this->ports()->addPort(port_joint_velocity_);
+  this->ports()->addPort(port_motor_current_);
+  this->ports()->addPort(port_joint_torque_);
 
   this->addProperty("gear", gear_);
   this->addProperty("encoder_res", encoder_res_);

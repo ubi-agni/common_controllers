@@ -17,18 +17,21 @@
 #endif
 
   CartesianImpedance::CartesianImpedance(const std::string &name) :
-    RTT::TaskContext(name, PreOperational) {
+    RTT::TaskContext(name, PreOperational),
+    port_joint_torque_command_("JointTorqueCommand_OUTPORT", false),
+    port_joint_position_("JointPosition_INPORT"),
+    port_joint_velocity_("JointVelocity_INPORT"),
+    port_mass_matrix_inv_("MassMatrixInv_INPORT"),
+    port_nullspace_torque_command_("NullSpaceTorqueCommand_INPORT") {
     N = 0;
     K = 0;
 
-    this->ports()->addPort("JointPosition_INPORT", port_joint_position_);
-    this->ports()->addPort("JointVelocity_INPORT", port_joint_velocity_);
-    this->ports()->addPort("MassMatrixInv_INPORT", port_mass_matrix_inv_);
+    this->ports()->addPort(port_joint_position_);
+    this->ports()->addPort(port_joint_velocity_);
+    this->ports()->addPort(port_mass_matrix_inv_);
 
-    this->ports()->addPort("JointTorqueCommand_OUTPORT",
-                           port_joint_torque_command_);
-    this->ports()->addPort("NullSpaceTorqueCommand_INPORT",
-                           port_nullspace_torque_command_);
+    this->ports()->addPort(port_joint_torque_command_);
+    this->ports()->addPort(port_nullspace_torque_command_);
   }
 
   bool CartesianImpedance::configureHook() {
@@ -56,6 +59,7 @@
       snprintf(name, sizeof(name), "CartesianPosition%zu_OUTPORT", i);
       port_cartesian_position_[i] = new typeof(*port_cartesian_position_[i]);
       this->ports()->addPort(name, *port_cartesian_position_[i]);
+      port_cartesian_position_[i]->keepLastWrittenValue(false);
 
       snprintf(name, sizeof(name), "ToolPositionCommand%zu_INPORT", i);
       port_tool_position_command_[i] = new typeof(*port_tool_position_command_[i]);
@@ -105,7 +109,6 @@
   }
 
   bool CartesianImpedance::startHook() {
-    RTT::Logger::In in("CartesianImpedance::startHook");
     RESTRICT_ALLOC;
 
     for (size_t i = 0; i < K; i++) {
@@ -167,7 +170,6 @@
   }
 
   void CartesianImpedance::updateHook() {
-    RTT::Logger::In in("CartesianImpedance::updateHook");
 
     RESTRICT_ALLOC;
     // ToolMass toolsM[K];
@@ -176,6 +178,7 @@
     // read inputs
     port_joint_position_.read(joint_position_);
     if (!joint_position_.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "joint_position_ contains NaN or inf" << RTT::endlog();
         return;
@@ -183,6 +186,7 @@
 
     port_joint_velocity_.read(joint_velocity_);
     if (!joint_velocity_.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "joint_velocity_ contains NaN or inf" << RTT::endlog();
         return;
@@ -190,6 +194,7 @@
 
     port_nullspace_torque_command_.read(nullspace_torque_command_);
     if (!nullspace_torque_command_.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "nullspace_torque_command_ contains NaN or inf" << RTT::endlog();
         return;
@@ -234,6 +239,7 @@
     port_mass_matrix_inv_.read(M);
 
     if (!M.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "M contains NaN or inf" << RTT::endlog();
         return;
@@ -243,6 +249,7 @@
     robot_->jacobian(J, joint_position_, &tools[0]);
 
     if (!J.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "J contains NaN or inf" << RTT::endlog();
         return;
@@ -255,6 +262,7 @@
     Mi = lu_.inverse();
 
     if (!Mi.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "Mi contains NaN or inf" << RTT::endlog();
         return;
@@ -280,6 +288,7 @@
     joint_torque_command_.noalias() = JT * F;
 
     if (!joint_torque_command_.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "joint_torque_command_ contains NaN or inf" << RTT::endlog();
         return;
@@ -310,6 +319,7 @@
     F.noalias() = Dc * tmpK_;
 
     if (!F.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "F contains NaN or inf" << RTT::endlog();
         return;
@@ -347,6 +357,7 @@
     P.noalias() -=  J.transpose() * A * J * Mi;
 
     if (!P.allFinite()) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
         error();
         RTT::log(RTT::Error) << "P contains NaN or inf" << RTT::endlog();
         return;

@@ -10,12 +10,12 @@
 #ifndef ROBOT_SERVICE_H_
 #define ROBOT_SERVICE_H_
 
+#include "eigen_patch/eigen_patch.h"
+
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
 #include <rtt/Logger.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
-
-#include <Eigen/Dense>
 
 namespace controller_common {
 class RobotService: public RTT::Service {

@@ -12,9 +12,9 @@
 
 #include <string>
 
+#include "eigen_patch/eigen_patch.h"
+
 #include "rtt/TaskContext.hpp"
-#include "Eigen/Dense"
-#include "Eigen/LU"
 
 #include "controller_common/robot.h"
 
