@@ -11,19 +11,21 @@
 #include <vector>
 #include <string>
 
-template <int N>
+template <int n1, int n2, int n3, int n4>
 class VectorConcate : public RTT::TaskContext {
  public:
   explicit VectorConcate(const std::string & name) :
     RTT::TaskContext(name, PreOperational),
-    port_output_("Out", false) {
+    port_input1_("In0"),
+    port_input2_("In1"),
+    port_input3_("In2"),
+    port_input4_("In3"),
+    port_output_("Out", true) {
 
-    for (size_t i = 0; i < N; i++) {
-      char port_name[10];
-      snprintf(port_name, sizeof(port_name), "In%zu", i);
-      this->ports()->addPort(port_name, port_inputs_[i]);
-    }
-
+    this->ports()->addPort(port_input1_);
+    this->ports()->addPort(port_input2_);
+    this->ports()->addPort(port_input3_);
+    this->ports()->addPort(port_input4_);
     this->ports()->addPort(port_output_);
   }
 
@@ -31,45 +33,43 @@ class VectorConcate : public RTT::TaskContext {
   }
 
   bool configureHook() {
-    RTT::Logger::In in(std::string("VectorConcate::configureHook ") + this->getName());
-    size_t size = 0;
-    for (size_t i = 0; i < N; i++) {
-      port_inputs_[i].getDataSample(inputs_[i]);
-      if (inputs_[i].size() == 0) {
-        RTT::log(RTT::Error) << "data sample on port " << port_inputs_[i].getName()
-                             << " is not set" << RTT::endlog();
-        return false;
-      }
-      size += inputs_[i].size();
-    }
-
-    output_.resize(size);
-    port_output_.setDataSample(output_);
-
     return true;
   }
 
   void updateHook() {
-    size_t k = 0;
-    bool new_data = false;
-    for (size_t i = 0; i < N; i++) {
-      if (port_inputs_[i].read(inputs_[i]) == RTT::NewData)
-        new_data = true;
-      for (size_t j = 0; j < inputs_[i].size(); j++) {
-        output_[k++] = inputs_[i][j];
-      }
-    }
-    if (new_data)
+    if ((n1 == 0 || port_input1_.read(input1_) == RTT::NewData) &&
+        (n2 == 0 || port_input2_.read(input2_) == RTT::NewData) &&
+        (n3 == 0 || port_input3_.read(input3_) == RTT::NewData) &&
+        (n4 == 0 || port_input4_.read(input4_) == RTT::NewData)) {
+
+      output_.template block<n1, 1>(0, 0) = input1_;
+      output_.template block<n2, 1>(n1, 0) = input2_;
+      output_.template block<n3, 1>(n1+n2, 0) = input3_;
+      output_.template block<n4, 1>(n1+n2+n3, 0) = input4_;
       port_output_.write(output_);
+    }
   }
 
  private:
-  RTT::InputPort<Eigen::VectorXd > port_inputs_[N];
 
-  RTT::OutputPort<Eigen::VectorXd > port_output_;
+  typedef Eigen::Matrix<double, n1, 1> VectorIn1;
+  typedef Eigen::Matrix<double, n2, 1> VectorIn2;
+  typedef Eigen::Matrix<double, n3, 1> VectorIn3;
+  typedef Eigen::Matrix<double, n4, 1> VectorIn4;
+  RTT::InputPort<VectorIn1 > port_input1_;
+  RTT::InputPort<VectorIn2 > port_input2_;
+  RTT::InputPort<VectorIn3 > port_input3_;
+  RTT::InputPort<VectorIn4 > port_input4_;
+  VectorIn1 input1_;
+  VectorIn2 input2_;
+  VectorIn3 input3_;
+  VectorIn4 input4_;
 
-  Eigen::VectorXd inputs_[N];
-  Eigen::VectorXd output_;
+  typedef Eigen::Matrix<double, n1+n2+n3+n4, 1> VectorOut;
+  RTT::OutputPort<VectorOut > port_output_;
+  VectorOut output_;
 };
+
+
 #endif  // VECTOR_CONCATE_H_
 

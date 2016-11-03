@@ -18,6 +18,8 @@
 #include <rtt/plugin/PluginLoader.hpp>
 
 namespace controller_common {
+
+template <unsigned DOFS, unsigned EFFECTORS>
 class RobotService: public RTT::Service {
  public:
   explicit RobotService(RTT::TaskContext* owner) :
@@ -33,9 +35,9 @@ class RobotService: public RTT::Service {
                         RTT::ClientThread);
   }
 
-  typedef Eigen::MatrixXd Jacobian;
-  typedef Eigen::MatrixXd Inertia;
-  typedef Eigen::VectorXd Joints;
+  typedef Eigen::Matrix<double, EFFECTORS*6, DOFS> Jacobian;
+  typedef Eigen::Matrix<double, DOFS, DOFS> Inertia;
+  typedef Eigen::Matrix<double, DOFS, 1> Joints;
   typedef Eigen::Matrix<double, 4, 1> ToolMass;
   typedef Eigen::Matrix<double, 7, 1> Tool;
 

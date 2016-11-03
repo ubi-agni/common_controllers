@@ -1,24 +1,54 @@
 // Copyright 2014 WUT
+
 /*
- * robot_mass_matrix.cpp
+ * robot_mass_matrix.h
  *
  *  Created on: 12 mar 2014
  *      Author: konradb3
  */
 
-#include "mass_test.h"
+#ifndef MASS_TEST_H_
+#define MASS_TEST_H_
 
 #include <string>
 
-MassTest::MassTest(const std::string& name) :
+#include "eigen_patch/eigen_patch.h"
+
+#include "rtt/TaskContext.hpp"
+
+#include "controller_common/robot.h"
+
+template <unsigned DOFS, unsigned EFFECTORS>
+class MassTest: public RTT::TaskContext {
+ public:
+  explicit MassTest(const std::string& name);
+  virtual ~MassTest();
+
+  bool configureHook();
+  void updateHook();
+ private:
+  typedef Eigen::Matrix<double, DOFS, 1> Joints;
+  typedef Eigen::Matrix<double, DOFS, DOFS> Inertia;
+
+  RTT::InputPort<Joints > port_joint_position_;
+  RTT::OutputPort<Inertia> port_mass_matrix_;
+  RTT::InputPort<Eigen::Matrix<double, 7, 7> > port_mass_matrix_left_;
+  RTT::InputPort<Eigen::Matrix<double, 7, 7> > port_mass_matrix_right_;
+
+  boost::shared_ptr<controller_common::Robot<DOFS, EFFECTORS> > robot_;
+
+  Inertia M_;
+  Eigen::Matrix<double, 7, 7> Ml_, Mr_;
+  Joints joint_position_;
+};
+
+template <unsigned DOFS, unsigned EFFECTORS>
+MassTest<DOFS, EFFECTORS>::MassTest(const std::string& name) :
     RTT::TaskContext(name, PreOperational),
     port_joint_position_("JointPosition_INPORT"),
     port_mass_matrix_("MassMatrix_OUTPORT", false),
     port_mass_matrix_left_("MassMatrixLeft_INPORT"),
     port_mass_matrix_right_("MassMatrixRight_INPORT") {
-
-  number_of_joints_ = 0;
-  number_of_effectors_ = 0;
 
   this->ports()->addPort(port_joint_position_);
   this->ports()->addPort(port_mass_matrix_);
@@ -26,49 +56,46 @@ MassTest::MassTest(const std::string& name) :
   this->ports()->addPort(port_mass_matrix_right_);
 }
 
-MassTest::~MassTest() {
+template <unsigned DOFS, unsigned EFFECTORS>
+MassTest<DOFS, EFFECTORS>::~MassTest() {
 }
 
-bool MassTest::configureHook() {
+template <unsigned DOFS, unsigned EFFECTORS>
+bool MassTest<DOFS, EFFECTORS>::configureHook() {
   RTT::Logger::In in("MassTest::configureHook");
 
-  robot_ = this->getProvider<controller_common::Robot>("robot");
+  robot_ = this->getProvider<controller_common::Robot<DOFS, EFFECTORS> >("robot");
   if (!robot_) {
     RTT::log(RTT::Error) << "Unable to load RobotService"
                          << RTT::endlog();
     return false;
   }
 
-  number_of_joints_ = robot_->dofs();
-  number_of_effectors_ = robot_->effectors();
-
-  if (number_of_joints_ == 0) {
-    RTT::log(RTT::Error) << "wrong number of joints: 0"
-                         << RTT::endlog();
+  if (robot_->dofs() != DOFS) {
+    RTT::log(RTT::Error) << "wrong number of DOFs: " << robot_->dofs()
+                         << ", expected " << DOFS << RTT::endlog();
     return false;
   }
 
-  if (number_of_effectors_ == 0) {
-    RTT::log(RTT::Error) << "wrong number of effectors: 0"
-                         << RTT::endlog();
+  if (robot_->effectors() != EFFECTORS) {
+    RTT::log(RTT::Error) << "wrong number of effectors: " << robot_->effectors()
+                         << ", expected " << EFFECTORS << RTT::endlog();
     return false;
   }
-
-  joint_position_.resize(number_of_joints_);
-  M_.resize(number_of_joints_, number_of_joints_);
 
   port_mass_matrix_.setDataSample(M_);
 
   return true;
 }
 
-void MassTest::updateHook() {
+template <unsigned DOFS, unsigned EFFECTORS>
+void MassTest<DOFS, EFFECTORS>::updateHook() {
   port_joint_position_.read(joint_position_);
 
-  if (joint_position_.size() != number_of_joints_) {
+  if (joint_position_.size() != DOFS) {
     RTT::Logger::In in("MassTest::updateHook");
     RTT::log(RTT::Error) << "Received joint position vector have invalid size. [read: "
-                         << joint_position_.size() << " expected: " << number_of_joints_
+                         << joint_position_.size() << " expected: " << DOFS
                          << "]" << RTT::endlog();
     error();
     return;
@@ -117,9 +144,10 @@ void MassTest::updateHook() {
     return;
   }
 
-  M_.block<7, 7>(1, 1) = Mr_;
-  M_.block<7, 7>(8, 8) = Ml_;
+  M_.template block<7, 7>(1, 1) = Mr_;
+  M_.template block<7, 7>(8, 8) = Ml_;
 
   port_mass_matrix_.write(M_);
 }
 
+#endif  // MASS_TEST_H_

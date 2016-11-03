@@ -16,6 +16,8 @@
 #include "rtt/RTT.hpp"
 
 namespace controller_common {
+
+template <unsigned DOFS, unsigned EFFECTORS>
 class Robot : public RTT::ServiceRequester {
  public:
   explicit Robot(RTT::TaskContext *owner) :
@@ -32,9 +34,9 @@ class Robot : public RTT::ServiceRequester {
     this->addOperationCaller(effectors);
   }
 
-  typedef Eigen::MatrixXd Jacobian;
-  typedef Eigen::MatrixXd Inertia;
-  typedef Eigen::VectorXd Joints;
+  typedef Eigen::Matrix<double, EFFECTORS*6, DOFS> Jacobian;
+  typedef Eigen::Matrix<double, DOFS, DOFS> Inertia;
+  typedef Eigen::Matrix<double, DOFS, 1> Joints;
   typedef Eigen::Matrix<double, 4, 1> ToolMass;
   typedef Eigen::Matrix<double, 7, 1> Tool;
 

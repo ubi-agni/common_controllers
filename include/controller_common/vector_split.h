@@ -10,45 +10,28 @@
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
 
-template <int N>
+template <int n1, int n2, int n3, int n4>
 class VectorSplit : public RTT::TaskContext {
  public:
   explicit VectorSplit(const std::string & name) :
     TaskContext(name, PreOperational),
-    size_(0),
-    port_input_("In") {
-
-    this->addProperty("outputs", out_);
-    for (size_t i = 0; i < N; i++) {
-      char port_name[10];
-      snprintf(port_name, sizeof(port_name), "Out%zu", i);
-      this->ports()->addPort(port_name, port_outputs_[i]);
-      port_outputs_[i].keepLastWrittenValue(false);
-    }
+    port_input_("In"),
+    port_output1_("Out0", true),
+    port_output2_("Out1", true),
+    port_output3_("Out2", true),
+    port_output4_("Out3", true) {
 
     this->ports()->addPort(port_input_);
+    this->ports()->addPort(port_output1_);
+    this->ports()->addPort(port_output2_);
+    this->ports()->addPort(port_output3_);
+    this->ports()->addPort(port_output4_);
   }
 
   ~VectorSplit() {
   }
 
   bool configureHook() {
-    if (!(out_.size() == N)) {
-      RTT::log(RTT::Error) << "config error " << out_.size() << RTT::endlog();
-      return false;
-    }
-    port_input_.getDataSample(input_);
-
-    size_ = 0;
-    for (size_t i = 0; i < N; i++) {
-      size_ += out_[i];
-      outputs_[i].resize(out_[i]);
-      port_outputs_[i].setDataSample(outputs_[i]);
-    }
-
-    // if(!(input_.size() == size_))
-    //   return false;
-
     return true;
   }
 
@@ -57,35 +40,38 @@ class VectorSplit : public RTT::TaskContext {
   }
 
   void updateHook() {
-    size_t k = 0;
+    if (port_input_.read(input_) == RTT::NewData) {
 
-    port_input_.read(input_);
+      output1_ = input_.template block<n1, 1>(0, 0);
+      output2_ = input_.template block<n2, 1>(n1, 0);
+      output3_ = input_.template block<n3, 1>(n1+n2, 0);
+      output4_ = input_.template block<n4, 1>(n1+n2+n3, 0);
 
-    if (!(input_.size() == size_)) {
-      RTT::Logger::log(RTT::Logger::Error) << "Input vector size (" << input_.size()
-                                           << ") does not mach the expected (" << size_
-                                           << ")" << RTT::endlog();
-      return;
-    }
-
-    for (size_t i = 0; i < N; i++) {
-      for (size_t j = 0; j < outputs_[i].size(); j++) {
-        outputs_[i][j] = input_[k++];
-      }
-      port_outputs_[i].write(outputs_[i]);
+      port_output1_.write(output1_);
+      port_output2_.write(output2_);
+      port_output3_.write(output3_);
+      port_output4_.write(output4_);
     }
   }
 
  private:
-  RTT::InputPort<Eigen::VectorXd > port_input_;
 
-  RTT::OutputPort<Eigen::VectorXd > port_outputs_[N];
+  typedef Eigen::Matrix<double, n1, 1> VectorOut1;
+  typedef Eigen::Matrix<double, n2, 1> VectorOut2;
+  typedef Eigen::Matrix<double, n3, 1> VectorOut3;
+  typedef Eigen::Matrix<double, n4, 1> VectorOut4;
+  RTT::OutputPort<VectorOut1 > port_output1_;
+  RTT::OutputPort<VectorOut2 > port_output2_;
+  RTT::OutputPort<VectorOut3 > port_output3_;
+  RTT::OutputPort<VectorOut4 > port_output4_;
+  VectorOut1 output1_;
+  VectorOut2 output2_;
+  VectorOut3 output3_;
+  VectorOut4 output4_;
 
-  Eigen::VectorXd input_;
-  Eigen::VectorXd outputs_[N];
-  std::vector<int> out_;
-
-  size_t size_;
+  typedef Eigen::Matrix<double, n1+n2+n3+n4, 1> VectorIn;
+  RTT::InputPort<VectorIn > port_input_;
+  VectorIn input_;
 };
 #endif  // VECTOR_SPLIT_H_
 

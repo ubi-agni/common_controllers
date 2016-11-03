@@ -8,7 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
   cartesian_trajectory_msgs
   eigen_conversions
   kdl_conversions
+  trajectory_msgs
   eigen_patch
+  rtt_actionlib
   )
 
 find_package(Eigen3 REQUIRED)
@@ -26,7 +28,7 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS} include)
 ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
-orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/joint_limit_avoidance.cpp src/robot_mass_matrix.cpp src/mass_test.cpp src/cartesian_impedance_interpolator.cpp src/cartesian_impedance_action.cpp src/pose_transform.cpp src/tf_publisher.cpp src/torque_publisher.cpp src/simple_transmision.cpp src/simple_transmision_inv.cpp src/cartesian_impedance.cpp)
+orocos_component(controller_common src/controller_common.cpp src/cartesian_interpolator.cpp src/cartesian_trajectory_action.cpp src/cartesian_impedance_interpolator.cpp src/cartesian_impedance_action.cpp src/pose_transform.cpp src/tf_publisher.cpp src/simple_transmision.cpp src/simple_transmision_inv.cpp src/velocityprofile_spline.cpp)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###
@@ -34,7 +36,7 @@ target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARI
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(
   INCLUDE_DIRS include
-  DEPENDS rtt_ros geometry_msgs std_msgs message_runtime rtt_roscomm eigen_patch
+  DEPENDS rtt_ros geometry_msgs std_msgs message_runtime rtt_roscomm eigen_patch cartesian_trajectory_msgs trajectory_msgs rtt_actionlib
 )
 
 orocos_install_headers(
