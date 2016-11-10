@@ -9,7 +9,6 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
   kdl_conversions
   trajectory_msgs
-  eigen_patch
   rtt_actionlib
   )
 
@@ -36,7 +35,7 @@ target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARI
 # Export package information (replaces catkin_package() macro) 
 orocos_generate_package(
   INCLUDE_DIRS include
-  DEPENDS rtt_ros geometry_msgs std_msgs message_runtime rtt_roscomm eigen_patch cartesian_trajectory_msgs trajectory_msgs rtt_actionlib
+  DEPENDS rtt_ros geometry_msgs std_msgs message_runtime rtt_roscomm cartesian_trajectory_msgs trajectory_msgs rtt_actionlib
 )
 
 orocos_install_headers(
