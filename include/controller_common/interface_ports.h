@@ -29,31 +29,28 @@
 #define __INTERFACE_PORTS_H__
 
 #include <cstring>
-
 #include <vector>
 #include <string>
 
-#include "rtt/RTT.hpp"
-#include "rtt/os/TimeService.hpp"
-#include "Eigen/Dense"
+#include <boost/shared_ptr.hpp>
 
-#include "eigen_conversions/eigen_msg.h"
+#include "rtt/RTT.hpp"
 
 #include "controller_common/interface_port_data.h"
 
 namespace interface_ports {
 
-template <typename innerT, typename rosC, typename rosT, rosT rosC::*ptr >
+template <typename innerT, typename rosT >
 class PortData {
 public:
     PortData() {}
 
-    void convertFromROS(const rosC &container) {
-        data_.convertFromROS(container.*ptr);
+    void convertFromROS(const rosT &data) {
+        data_.convertFromROS(data);
     }
 
-    void convertToROS(rosC &container) {
-        data_.convertToROS(container.*ptr);
+    void convertToROS(rosT &data) {
+        data_.convertToROS(data);
     }
 
     innerT& getDataRef() {
@@ -74,7 +71,7 @@ public:
         tc.ports()->addPort(port_name + "_INPORT", port_);
     }
 
-    bool operation(innerT &data) {
+    bool readPorts(innerT &data) {
         return port_.read(data) == RTT::NewData;
     }
 
@@ -95,7 +92,7 @@ public:
         tc.ports()->addPort(port_);
     }
 
-    bool operation(innerT &data) {
+    bool writePorts(innerT &data) {
         port_.write(data);
         return true;
     }
@@ -108,34 +105,187 @@ protected:
     RTT::OutputPort<innerT > port_;
 };
 
-
-template <template <typename Type> class T, typename innerT, typename rosC, typename rosT, rosT rosC::*ptr >
-class Port {
+template <typename rosC >
+class PortInterface {
 public:
-    Port(RTT::TaskContext &tc, const std::string &port_name) :
-        po_(tc, port_name)
+    virtual void convertFromROS(const rosC &container) = 0;
+    virtual void convertToROS(rosC &container) = 0;
+    virtual bool readPorts() = 0;
+    virtual bool writePorts() = 0;
+};
+
+template <template <typename Type> class T, typename innerT, typename rosC, typename rosT >
+class Port : public PortInterface<rosC > { };
+
+template <typename innerT, typename rosC, typename rosT >
+class Port<RTT::InputPort, innerT, rosC, rosT > : public PortInterface<rosC > {
+public:
+    Port(RTT::TaskContext &tc, const std::string &port_name, rosT rosC::*ptr) :
+        po_(tc, port_name),
+        data_(),
+        ptr_(ptr)
     {
         po_.setDataSample(data_.getDataRef());
     }
 
-    void convertFromROS(const rosC &container) {
-        data_.convertFromROS(container);
+    virtual void convertFromROS(const rosC &container) {
+        data_.convertFromROS(container.*ptr_);
     }
 
-    void convertToROS(rosC &container) {
-        data_.convertToROS(container);
+    virtual void convertToROS(rosC &container) {
+        data_.convertToROS(container.*ptr_);
     }
 
-    bool operation() {
-        return po_.operation(data_.getDataRef());
+    virtual bool readPorts() {
+        return po_.readPorts(data_.getDataRef());
+    }
+
+    virtual bool writePorts() {
+        return false;
     }
 
 protected:
 
-    PortOperation<T, innerT> po_;
+    PortOperation<RTT::InputPort, innerT> po_;
 
-    PortData<innerT, rosC, rosT, ptr > data_;
+    PortData<innerT, rosT > data_;
+    rosT rosC::*ptr_;
 };
+
+template <typename innerT, typename rosC, typename rosT >
+class Port<RTT::OutputPort, innerT, rosC, rosT > : public PortInterface<rosC > {
+public:
+    Port(RTT::TaskContext &tc, const std::string &port_name, rosT rosC::*ptr) :
+        po_(tc, port_name),
+        data_(),
+        ptr_(ptr)
+    {
+        po_.setDataSample(data_.getDataRef());
+    }
+
+    virtual void convertFromROS(const rosC &container) {
+        data_.convertFromROS(container.*ptr_);
+    }
+
+    virtual void convertToROS(rosC &container) {
+        data_.convertToROS(container.*ptr_);
+    }
+
+    virtual bool readPorts() {
+        return false;
+    }
+
+    virtual bool writePorts() {
+        return po_.writePorts(data_.getDataRef());
+    }
+
+protected:
+
+    PortOperation<RTT::OutputPort, innerT> po_;
+
+    PortData<innerT, rosT > data_;
+    rosT rosC::*ptr_;
+};
+
+template <typename rosC, typename rosT >
+class PortsContainer : public PortInterface<rosC > {
+public:
+
+    PortsContainer(rosT rosC::*ptr) :
+        ptr_(ptr),
+        valid_(false)
+    {}
+
+    virtual bool readPorts() {
+        valid_ = true;
+        for (int i = 0; i < ports_.size(); ++i) {
+            valid_ = ports_[i]->readPorts() && valid_;
+        }
+        return valid_;
+    }
+
+    virtual bool writePorts() {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->writePorts();
+        }
+        return true;
+    }
+
+    virtual void convertFromROS(const rosC &ros) {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->convertFromROS(ros.*ptr_);
+        }
+    }
+
+    virtual void convertToROS(rosC &ros) {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->convertToROS(ros.*ptr_);
+        }
+    }
+
+    virtual void addPort(boost::shared_ptr<PortInterface<rosT > > port) {
+        ports_.push_back(port);
+    }
+
+    bool isValid() const {
+        return valid_;
+    }
+
+private:
+    std::vector<boost::shared_ptr<PortInterface<rosT > > > ports_;
+    rosT rosC::*ptr_;
+    bool valid_;
+};
+
+
+template <typename rosC >
+class PortsContainerOuter : public PortInterface<rosC > {
+public:
+
+    PortsContainerOuter() :
+        valid_(false)
+    {}
+
+    virtual bool readPorts() {
+        valid_ = true;
+        for (int i = 0; i < ports_.size(); ++i) {
+            valid_ = ports_[i]->readPorts() && valid_;
+        }
+        return valid_;
+    }
+
+    virtual bool writePorts() {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->writePorts();
+        }
+        return true;
+    }
+
+    virtual void convertFromROS(const rosC &ros) {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->convertFromROS(ros);
+        }
+    }
+
+    virtual void convertToROS(rosC &ros) {
+        for (int i = 0; i < ports_.size(); ++i) {
+            ports_[i]->convertToROS(ros);
+        }
+    }
+
+    virtual void addPort(boost::shared_ptr<PortInterface<rosC > > port) {
+        ports_.push_back(port);
+    }
+
+    bool isValid() const {
+        return valid_;
+    }
+
+private:
+    std::vector<boost::shared_ptr<PortInterface<rosC > > > ports_;
+    bool valid_;
+};
+
 
 };  // namespace interface_ports
 
