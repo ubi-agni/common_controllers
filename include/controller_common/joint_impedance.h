@@ -162,7 +162,9 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
   }
 
   // this port can be unconnected
-  port_nullspace_torque_command_.read(nullspace_torque_command_);
+  if (port_nullspace_torque_command_.read(nullspace_torque_command_) != RTT::NewData) {
+    nullspace_torque_command_.setZero();
+  }
 
   joint_error_.noalias() = joint_position_command_ - joint_position_;
   joint_torque_command_.noalias() = k_.cwiseProduct(joint_error_);
