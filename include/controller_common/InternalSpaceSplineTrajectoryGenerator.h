@@ -79,7 +79,7 @@ class InternalSpaceSplineTrajectoryGenerator : public RTT::TaskContext {
 
   RTT::OutputPort<VectorNd> port_internal_space_position_command_out_;
   RTT::InputPort<VectorNd> port_internal_space_position_measurement_in_;
-  RTT::OutputPort<bool> port_generator_active_out_;
+//  RTT::OutputPort<bool> port_generator_active_out_;
   RTT::InputPort<bool> port_is_synchronised_in_;
 
  private:
@@ -94,6 +94,8 @@ class InternalSpaceSplineTrajectoryGenerator : public RTT::TaskContext {
 
   trajectory_msgs::JointTrajectoryConstPtr trajectory_;
   size_t trajectory_ptr_;
+
+  bool first_step_;
 };
 
 using namespace RTT;
@@ -107,13 +109,13 @@ InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::InternalSpaceSplineTra
       trajectory_ptr_(0),
       port_trajectory_in_("trajectoryPtr_INPORT"),
       port_internal_space_position_command_out_("JointPositionCommand_OUTPORT", true),
-      port_generator_active_out_("GeneratorActive_OUTPORT", true),
+//      port_generator_active_out_("GeneratorActive_OUTPORT", true),
       port_internal_space_position_measurement_in_("JointPosition_INPORT"),
       port_is_synchronised_in_("IsSynchronised_INPORT") {
   this->ports()->addPort(port_trajectory_in_);
   this->ports()->addPort(port_internal_space_position_command_out_);
   this->ports()->addPort(port_internal_space_position_measurement_in_);
-  this->ports()->addPort(port_generator_active_out_);
+//  this->ports()->addPort(port_generator_active_out_);
   this->ports()->addPort(port_is_synchronised_in_);
 
   return;
@@ -137,6 +139,9 @@ template <unsigned NUMBER_OF_JOINTS>
 bool InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::startHook() {
   RESTRICT_ALLOC;
 
+  first_step_ = true;
+
+/*
   bool is_synchronised = true;
 
   FlowStatus read_status = port_internal_space_position_measurement_in_.read(setpoint_);
@@ -158,8 +163,8 @@ bool InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::startHook() {
   if (!is_synchronised) {
     return false;
   }
-
-  port_generator_active_out_.write(true);
+*/
+//  port_generator_active_out_.write(true);
   last_point_not_set_ = false;
   trajectory_active_ = false;
   return true;
@@ -167,13 +172,44 @@ bool InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::startHook() {
 
 template <unsigned NUMBER_OF_JOINTS>
 void InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::stopHook() {
-  port_generator_active_out_.write(false);
+//  port_generator_active_out_.write(false);
   UNRESTRICT_ALLOC;
 }
 
 template <unsigned NUMBER_OF_JOINTS>
 void InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::updateHook() {
-  port_generator_active_out_.write(true);
+//  port_generator_active_out_.write(true);
+
+  if (first_step_) {
+    FlowStatus read_status = port_internal_space_position_measurement_in_.read(setpoint_);
+    if (read_status == RTT::NoData) {
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::log() << Logger::Error << "could not read data on port "
+                    << port_internal_space_position_measurement_in_.getName() << Logger::endl;
+      error();
+      return;
+    }
+    else if (read_status == RTT::OldData) {
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::log() << Logger::Error << "could not read new data on port "
+                    << port_internal_space_position_measurement_in_.getName() << Logger::endl;
+      error();
+      return;
+    }
+
+    bool is_synchronised = true;
+    port_is_synchronised_in_.read(is_synchronised);
+
+    if (!is_synchronised) {
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::log() << Logger::Error << "not synchronised" << Logger::endl;
+      error();
+      return;
+    }
+
+
+    first_step_ = false;
+  }
 
   trajectory_msgs::JointTrajectoryConstPtr trj_ptr_tmp;
   if (port_trajectory_in_.read(trj_ptr_tmp) == RTT::NewData) {
