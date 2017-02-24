@@ -51,6 +51,7 @@
 #include "controller_common/cartesian_status.h"
 
 #include "cartesian_trajectory_msgs/CartesianTrajectory.h"
+#include "cartesian_trajectory_msgs/CartesianTolerance.h"
 #include "geometry_msgs/Pose.h"
 #include "eigen_conversions/eigen_msg.h"
 
@@ -250,7 +251,7 @@ void CartesianInterpolator<TRAJECTORY_TYPE >::updateHook() {
 template <class TRAJECTORY_TYPE >
 void CartesianInterpolator<TRAJECTORY_TYPE >::resetTrajectory() {
   trajectory_idx_ = 0;
-  trajectory_ = velma_core_cs_task_cs_msgs::CommandCartImpTrjPose();
+  trajectory_ = TRAJECTORY_TYPE();
 }
 
 template <class TRAJECTORY_TYPE >

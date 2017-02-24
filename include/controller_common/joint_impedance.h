@@ -170,6 +170,9 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
   joint_torque_command_.noalias() = k_.cwiseProduct(joint_error_);
 
   port_mass_matrix_.read(m_);
+//  std::cout << "mass matrix:" << std::endl;
+//  std::cout << joint_velocity_.transpose() << std::endl;
+//  Logger::log() << Logger::Error << m_ << Logger::endl;
 
   tmpNN_ = k_.asDiagonal();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2014, Robot Control and Pattern Recognition Group, Warsaw University of Technology.
+ * Copyright (c) 2010-2017, Robot Control and Pattern Recognition Group, Warsaw University of Technology.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,11 @@
  * Action for both the motor and joint spline interpolation
  *
  *  Created on: 23-09-2010
- *      Author: Konrad Banachowicz
+ *      Author: Konrad Banachowicz, Dawid Seredynski
  */
 
-#ifndef INTERNALSPACESPLINETRAJECTORYACTION_H_
-#define INTERNALSPACESPLINETRAJECTORYACTION_H_
+#ifndef CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_ACTION_H_
+#define CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_ACTION_H_
 
 #include <string>
 #include <vector>
@@ -59,7 +59,9 @@
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <trajectory_msgs/JointTrajectory.h>
 
-template <unsigned DOFS>
+#include "controller_common/InternalSpaceSplineTrajectory_status.h"
+
+template <class TRAJECTORY_TYPE >
 class InternalSpaceSplineTrajectoryAction : public RTT::TaskContext {
  private:
   typedef actionlib::ServerGoalHandle<control_msgs::FollowJointTrajectoryAction> GoalHandle;
@@ -75,20 +77,19 @@ class InternalSpaceSplineTrajectoryAction : public RTT::TaskContext {
 
  protected:
 
-  typedef Eigen::Matrix<double, DOFS, 1> Joints;
+  typedef Eigen::Matrix<double, TRAJECTORY_TYPE::DOFS, 1> Joints;
 
-  RTT::OutputPort<trajectory_msgs::JointTrajectoryConstPtr> trajectory_ptr_port_;
-
-  RTT::InputPort<trajectory_msgs::JointTrajectory> command_port_;
+  TRAJECTORY_TYPE jnt_command_out_;
+  RTT::OutputPort<TRAJECTORY_TYPE > port_jnt_command_out_;
 
   RTT::InputPort<Joints> port_joint_position_;
   RTT::InputPort<Joints> port_joint_position_command_;
+  RTT::InputPort<int32_t> port_generator_status_;
 
  private:
   void goalCB(GoalHandle gh);
   void cancelCB(GoalHandle gh);
 
-  void commandCB();
   void compleatCB();
   void bufferReadyCB();
 
@@ -111,135 +112,121 @@ class InternalSpaceSplineTrajectoryAction : public RTT::TaskContext {
   bool enable_;
 
   control_msgs::FollowJointTrajectoryFeedback feedback_;
+
+  Joints stiffness_;
+
+  int cycles_;
 };
 
-template <unsigned DOFS>
-InternalSpaceSplineTrajectoryAction<DOFS>::InternalSpaceSplineTrajectoryAction(
+template <class TRAJECTORY_TYPE >
+InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::InternalSpaceSplineTrajectoryAction(
     const std::string& name)
-    : RTT::TaskContext(name, PreOperational),
-      command_port_("command") {
+    : RTT::TaskContext(name, PreOperational)
+{
   // Add action server ports to this task's root service
   as_.addPorts(this->provides());
 
   // Bind action server goal and cancel callbacks (see below)
   as_.registerGoalCallback(
-      boost::bind(&InternalSpaceSplineTrajectoryAction::goalCB, this, _1));
+      boost::bind(&InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::goalCB, this, _1));
   as_.registerCancelCallback(
-      boost::bind(&InternalSpaceSplineTrajectoryAction::cancelCB, this, _1));
+      boost::bind(&InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::cancelCB, this, _1));
 
-  this->addPort("trajectoryPtr", trajectory_ptr_port_);
-  this->addPort("JointPosition", port_joint_position_);
-  this->addPort("JointPositionCommand", port_joint_position_command_);
-  this->addEventPort(
-      command_port_,
-      boost::bind(&InternalSpaceSplineTrajectoryAction::commandCB, this));
+  this->addPort("jnt_OUTPORT", port_jnt_command_out_);
+  this->addPort("JointPosition_INPORT", port_joint_position_);
+  this->addPort("JointPositionCommand_INPORT", port_joint_position_command_);
+  this->addPort("generator_status_INPORT", port_generator_status_);
   this->addProperty("joint_names", jointNames_);
   this->addProperty("lower_limits", lowerLimits_);
   this->addProperty("upper_limits", upperLimits_);
 }
 
-template <unsigned DOFS>
-InternalSpaceSplineTrajectoryAction<DOFS>::~InternalSpaceSplineTrajectoryAction() {
+template <class TRAJECTORY_TYPE >
+InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::~InternalSpaceSplineTrajectoryAction() {
 }
 
-template <unsigned DOFS>
-bool InternalSpaceSplineTrajectoryAction<DOFS>::configureHook() {
+template <class TRAJECTORY_TYPE >
+bool InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::configureHook() {
   RTT::Logger::In in("InternalSpaceSplineTrajectoryAction::configureHook");
 
-  if (jointNames_.size() != DOFS) {
-    RTT::log(RTT::Error) << "ROS param jointNames has wrong size:"
-                         << jointNames_.size() << ", expected: " << DOFS << RTT::endlog();
+  if (jointNames_.size() != TRAJECTORY_TYPE::DOFS) {
+    RTT::log(RTT::Error) << "ROS param joint_names has wrong size:"
+                         << jointNames_.size() << ", expected: " << TRAJECTORY_TYPE::DOFS << RTT::endlog();
     return false;
   }
 
-  feedback_.actual.positions.resize(DOFS);
-  feedback_.desired.positions.resize(DOFS);
-  feedback_.error.positions.resize(DOFS);
-  feedback_.joint_names.resize(DOFS);
+  feedback_.actual.positions.resize(TRAJECTORY_TYPE::DOFS);
+  feedback_.desired.positions.resize(TRAJECTORY_TYPE::DOFS);
+  feedback_.error.positions.resize(TRAJECTORY_TYPE::DOFS);
+  feedback_.joint_names.resize(TRAJECTORY_TYPE::DOFS);
 
   for (int i = 0; i < jointNames_.size(); i++) {
     feedback_.joint_names.push_back(jointNames_[i]);
   }
 
-  remapTable_.resize(DOFS);
+  remapTable_.resize(TRAJECTORY_TYPE::DOFS);
 
-  if (lowerLimits_.size() != DOFS) {
-    RTT::log(RTT::Error) << "ROS param lowerLimits has wrong size:"
-                         << lowerLimits_.size() << ", expected: " << DOFS << RTT::endlog();
+  if (lowerLimits_.size() != TRAJECTORY_TYPE::DOFS) {
+    RTT::log(RTT::Error) << "ROS param lower_limits has wrong size:"
+                         << lowerLimits_.size() << ", expected: " << TRAJECTORY_TYPE::DOFS << RTT::endlog();
     return false;
   }
 
-  if (upperLimits_.size() != DOFS) {
-    RTT::log(RTT::Error) << "ROS param upperLimits has wrong size:"
-                         << upperLimits_.size() << ", expected: " << DOFS << RTT::endlog();
+  if (upperLimits_.size() != TRAJECTORY_TYPE::DOFS) {
+    RTT::log(RTT::Error) << "ROS param upper_limits has wrong size:"
+                         << upperLimits_.size() << ", expected: " << TRAJECTORY_TYPE::DOFS << RTT::endlog();
     return false;
+  }
+
+  stiffness_(0) = 1000;
+  for (int i = 1; i < TRAJECTORY_TYPE::DOFS; ++i) {
+    stiffness_(i) = 200;
   }
 
   return true;
 }
 
-template <unsigned DOFS>
-bool InternalSpaceSplineTrajectoryAction<DOFS>::startHook() {
+template <class TRAJECTORY_TYPE >
+bool InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::startHook() {
   as_.start();
   goal_active_ = false;
   enable_ = true;
 
+  cycles_ = 0;
+
   return true;
 }
 
-template <unsigned DOFS>
-void InternalSpaceSplineTrajectoryAction<DOFS>::updateHook() {
-  bool joint_position_data = true;
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::updateHook() {
+//  bool joint_position_data = true;
 
-  if (port_joint_position_.read(joint_position_) == RTT::NoData) {
-    joint_position_data = false;
-  }
+//  if (
+  port_joint_position_.read(joint_position_);// == RTT::NoData) {
+//    joint_position_data = false;
+//  }
   control_msgs::FollowJointTrajectoryResult res;
 
   port_joint_position_command_.read(desired_joint_position_);
 
-  Goal g = activeGoal_.getGoal();
+  int32_t generator_status;
+  if (port_generator_status_.read(generator_status) != RTT::NewData) {
+    generator_status = 3;
+  }
 
-  if (goal_active_ && joint_position_data) {
-    bool violated = false;
-    ros::Time now = rtt_rosclock::host_now();
+  if (cycles_ < 100) {
+    ++cycles_;
+  }
 
-    if (now > trajectory_finish_time_) {
-      violated = false;
-      for (int i = 0; i < DOFS; i++) {
-        for (int j = 0; j < g->goal_tolerance.size(); j++) {
-          if (g->goal_tolerance[j].name == g->trajectory.joint_names[i]) {
-            // Jeśli istnieje ograniczenie to sprawdzam pozycję
-            if (joint_position_[remapTable_[i]] + g->goal_tolerance[j].position
-                < g->trajectory.points[g->trajectory.points.size() - 1]
-                    .positions[i]
-                || joint_position_[remapTable_[i]]
-                    - g->goal_tolerance[j].position
-                    > g->trajectory.points[g->trajectory.points.size() - 1]
-                        .positions[i]) {
-              violated = true;
-              RTT::Logger::log(RTT::Logger::Debug) << g->goal_tolerance[j].name
-                  << " violated with position "
-                  << joint_position_[remapTable_[i]] << RTT::endlog();
-            }
-          }
-        }
-      }
-
-      if (violated && now > trajectory_finish_time_ + g->goal_time_tolerance) {
-        res.error_code =
-            control_msgs::FollowJointTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
-        activeGoal_.setAborted(res, "");
-        goal_active_ = false;
-      } else if (!violated) {
-        res.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
-        activeGoal_.setSucceeded(res, "");
-        goal_active_ = false;
-      }
-    } else {
-      // Wysyłanie feedback
-
-      for (int i = 0; i < DOFS; i++) {
+  if (goal_active_ && cycles_ > 2) {
+    if (generator_status == 3) {
+      // do nothing
+    }
+    else if (generator_status == internal_space_spline_trajectory_status::INACTIVE) {
+      // do nothing
+    }
+    else if (generator_status == internal_space_spline_trajectory_status::ACTIVE) {
+      for (int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
         feedback_.actual.positions[i] = joint_position_[i];
         feedback_.desired.positions[i] = desired_joint_position_[i];
         feedback_.error.positions[i] = joint_position_[i]
@@ -249,45 +236,47 @@ void InternalSpaceSplineTrajectoryAction<DOFS>::updateHook() {
       feedback_.header.stamp = rtt_rosclock::host_now();
 
       activeGoal_.publishFeedback(feedback_);
-
-      // Sprawdzanie PATH_TOLRANCE_VIOLATED
-      violated = false;
-      for (int i = 0; i < g->path_tolerance.size(); i++) {
-        for (int j = 0; j < jointNames_.size(); j++) {
-          if (jointNames_[j] == g->path_tolerance[i].name) {
-            if (fabs(joint_position_[j] - desired_joint_position_[j])
-                > g->path_tolerance[i].position) {
-              violated = true;
-              RTT::Logger::log(RTT::Logger::Error) << "Path tolerance violated"
-                  << RTT::endlog();
-            }
-          }
-        }
-      }
-      if (violated) {
-        trajectory_ptr_port_.write(trajectory_msgs::JointTrajectoryConstPtr());
-        res.error_code =
-            control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-        activeGoal_.setAborted(res);
-      }
+    }
+    else if (generator_status == internal_space_spline_trajectory_status::SUCCESSFUL) {
+      res.error_code = control_msgs::FollowJointTrajectoryResult::SUCCESSFUL;
+      activeGoal_.setSucceeded(res, "");
+      goal_active_ = false;
+    }
+    else if (generator_status == internal_space_spline_trajectory_status::PATH_TOLERANCE_VIOLATED) {
+      res.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      activeGoal_.setAborted(res);
+      goal_active_ = false;
+    }
+    else if (generator_status == internal_space_spline_trajectory_status::GOAL_TOLERANCE_VIOLATED) {
+      res.error_code = control_msgs::FollowJointTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+      activeGoal_.setAborted(res, "");
+      goal_active_ = false;
     }
   }
 }
 
-template <unsigned DOFS>
-void InternalSpaceSplineTrajectoryAction<DOFS>::goalCB(GoalHandle gh) {
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
   if (!goal_active_) {
-    trajectory_msgs::JointTrajectory* trj_ptr =
-        new trajectory_msgs::JointTrajectory;
     Goal g = gh.getGoal();
 
     control_msgs::FollowJointTrajectoryResult res;
 
-    RTT::Logger::log(RTT::Logger::Debug) << "Received trajectory contain "
+    RTT::Logger::log(RTT::Logger::Debug) << "Received trajectory contains "
         << g->trajectory.points.size() << " points" << RTT::endlog();
 
+    if (g->trajectory.points.size() > jnt_command_out_.trj.size()) {
+        RTT::Logger::log(RTT::Logger::Error)
+            << "Trajectory contains too many points" << RTT::endlog();
+        res.error_code =
+            control_msgs::FollowJointTrajectoryResult::INVALID_JOINTS;
+        gh.setRejected(res, "");
+        return;
+    }
+
+
     // fill remap table
-    for (unsigned int i = 0; i < DOFS; i++) {
+    for (unsigned int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
       int jointId = -1;
       for (unsigned int j = 0; j < g->trajectory.joint_names.size(); j++) {
         if (g->trajectory.joint_names[j] == jointNames_[i]) {
@@ -309,7 +298,7 @@ void InternalSpaceSplineTrajectoryAction<DOFS>::goalCB(GoalHandle gh) {
 
     // Sprawdzenie ograniczeń w jointach INVALID_GOAL
     bool invalid_goal = false;
-    for (unsigned int i = 0; i < DOFS; i++) {
+    for (unsigned int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
       for (int j = 0; j < g->trajectory.points.size(); j++) {
         if (g->trajectory.points[j].positions[i] > upperLimits_[remapTable_[i]]
             || g->trajectory.points[j].positions[i]
@@ -332,37 +321,35 @@ void InternalSpaceSplineTrajectoryAction<DOFS>::goalCB(GoalHandle gh) {
       return;
     }
 
-    // Remap joints
-    trj_ptr->header = g->trajectory.header;
-    trj_ptr->points.resize(g->trajectory.points.size());
+    jnt_command_out_.start = g->trajectory.header.stamp;
+
+    jnt_command_out_.count_trj = g->trajectory.points.size();
 
     for (unsigned int i = 0; i < g->trajectory.points.size(); i++) {
-      trj_ptr->points[i].positions.resize(
-          g->trajectory.points[i].positions.size());
       for (unsigned int j = 0; j < g->trajectory.points[i].positions.size();
           j++) {
-        trj_ptr->points[i].positions[j] =
-            g->trajectory.points[i].positions[remapTable_[j]];
+        jnt_command_out_.trj[i].positions[j] = g->trajectory.points[i].positions[remapTable_[j]];
       }
 
-      trj_ptr->points[i].velocities.resize(
-          g->trajectory.points[i].velocities.size());
       for (unsigned int j = 0; j < g->trajectory.points[i].velocities.size();
           j++) {
-        trj_ptr->points[i].velocities[j] =
-            g->trajectory.points[i].velocities[remapTable_[j]];
+        jnt_command_out_.trj[i].velocities[j] = g->trajectory.points[i].velocities[remapTable_[j]];
       }
 
-      trj_ptr->points[i].accelerations.resize(
-          g->trajectory.points[i].accelerations.size());
-      for (unsigned int j = 0; j < g->trajectory.points[i].accelerations.size();
-          j++) {
-        trj_ptr->points[i].accelerations[j] = g->trajectory.points[i]
-            .accelerations[remapTable_[j]];
-      }
+      jnt_command_out_.trj[i].time_from_start = g->trajectory.points[i].time_from_start;
+    }
 
-      trj_ptr->points[i].time_from_start = g->trajectory.points[i]
-          .time_from_start;
+    // prepare tolerances data
+    jnt_command_out_.goal_time_tolerance = g->goal_time_tolerance;
+    if (g->path_tolerance.size() == g->trajectory.joint_names.size()) {
+      for (int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
+        jnt_command_out_.path_tolerance[i] = g->path_tolerance[remapTable_[i]].position;
+      }
+    }
+    if (g->goal_tolerance.size() == g->trajectory.joint_names.size()) {
+      for (int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
+        jnt_command_out_.goal_tolerance[i] = g->goal_tolerance[remapTable_[i]].position;
+      }
     }
 
     // Sprawdzenie czasu w nagłówku OLD_HEADER_TIMESTAMP
@@ -372,47 +359,33 @@ void InternalSpaceSplineTrajectoryAction<DOFS>::goalCB(GoalHandle gh) {
       res.error_code =
           control_msgs::FollowJointTrajectoryResult::OLD_HEADER_TIMESTAMP;
       gh.setRejected(res, "");
+      return;
     }
 
     trajectory_finish_time_ = g->trajectory.header.stamp
         + g->trajectory.points[g->trajectory.points.size() - 1].time_from_start;
 
+    for (int i = 0; i < TRAJECTORY_TYPE::DOFS; ++i) {
+        jnt_command_out_.stiffness[i] = stiffness_(i);
+    }
+
     activeGoal_ = gh;
     goal_active_ = true;
+    cycles_ = 0;
 
-    bool ok = true;
+    port_jnt_command_out_.write(jnt_command_out_);
 
-    RTT::TaskContext::PeerList peers = this->getPeerList();
-    for (size_t i = 0; i < peers.size(); i++) {
-      RTT::Logger::log(RTT::Logger::Debug) << "Starting peer : " << peers[i]
-          << RTT::endlog();
-      ok = ok && this->getPeer(peers[i])->start();
-    }
-
-    if (ok) {
-      trajectory_msgs::JointTrajectoryConstPtr trj_cptr =
-          trajectory_msgs::JointTrajectoryConstPtr(trj_ptr);
-
-      trajectory_ptr_port_.write(trj_cptr);
-
-      gh.setAccepted();
-      goal_active_ = true;
-    } else {
-      gh.setRejected();
-      goal_active_ = false;
-    }
+    gh.setAccepted();
+    goal_active_ = true;
   } else {
     gh.setRejected();
   }
 }
 
-template <unsigned DOFS>
-void InternalSpaceSplineTrajectoryAction<DOFS>::cancelCB(GoalHandle gh) {
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::cancelCB(GoalHandle gh) {
   goal_active_ = false;
 }
 
-template <unsigned DOFS>
-void InternalSpaceSplineTrajectoryAction<DOFS>::commandCB() {
-}
+#endif  // CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_ACTION_H_
 
-#endif  // INTERNALSPACESPLINETRAJECTORYACTION_H_

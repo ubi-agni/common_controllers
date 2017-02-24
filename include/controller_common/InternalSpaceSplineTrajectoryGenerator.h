@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Robot Control and Pattern Recognition Group, Warsaw University of Technology.
+ * Copyright (c) 2010-2017, Robot Control and Pattern Recognition Group, Warsaw University of Technology.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,11 @@
  * Generator for both the motor and joint spline interpolation
  *
  *  Created on: 22-09-2010
- *      Author: Konrad Banachowicz
+ *      Author: Konrad Banachowicz, Dawid Seredynski
  */
 
-#ifndef INTERNALSPACESPLINETRAJECTORYGENERATOR_H_
-#define INTERNALSPACESPLINETRAJECTORYGENERATOR_H_
+#ifndef CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_GENERATOR_H_
+#define CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_GENERATOR_H_
 
 #include <Eigen/Dense>
 
@@ -52,6 +52,8 @@
 #include <vector>
 #include <exception>
 
+#include "controller_common/InternalSpaceSplineTrajectory_status.h"
+
 #include "controller_common/velocityprofile_spline.hpp"
 
 #ifdef EIGEN_RUNTIME_NO_MALLOC
@@ -61,7 +63,7 @@
 #error EIGEN_RUNTIME_NO_MALLOC must be defined
 #endif
 
-template <unsigned NUMBER_OF_JOINTS>
+template <class TRAJECTORY_TYPE >
 class InternalSpaceSplineTrajectoryGenerator : public RTT::TaskContext {
  public:
   explicit InternalSpaceSplineTrajectoryGenerator(const std::string& name);
@@ -73,124 +75,113 @@ class InternalSpaceSplineTrajectoryGenerator : public RTT::TaskContext {
   virtual void updateHook();
 
  protected:
-  typedef Eigen::Matrix<double, NUMBER_OF_JOINTS, 1>  VectorNd;
+  typedef Eigen::Matrix<double, TRAJECTORY_TYPE::DOFS, 1>  VectorNd;
 
-  RTT::InputPort<trajectory_msgs::JointTrajectoryConstPtr> port_trajectory_in_;
+  TRAJECTORY_TYPE jnt_command_in_;
+  RTT::InputPort<TRAJECTORY_TYPE > port_jnt_command_in_;
 
+  VectorNd internal_space_position_measurement_in_;
   RTT::OutputPort<VectorNd> port_internal_space_position_command_out_;
   RTT::InputPort<VectorNd> port_internal_space_position_measurement_in_;
-//  RTT::OutputPort<bool> port_generator_active_out_;
   RTT::InputPort<bool> port_is_synchronised_in_;
 
+  VectorNd stiffness_command_out_;
+  RTT::OutputPort<VectorNd> port_stiffness_command_out_;
+
+  int32_t generator_status_;
+  RTT::OutputPort<int32_t> port_generator_status_out_;
+
  private:
+  void resetTrajectory();
+
   bool last_point_not_set_;
-  bool trajectory_active_;
   std::vector<KDL::VelocityProfile_Spline> vel_profile_;
 
   trajectory_msgs::JointTrajectoryPoint trajectory_old_;
   trajectory_msgs::JointTrajectoryPoint trajectory_new_;
 
-  VectorNd des_jnt_pos_, setpoint_, old_point_;
+  VectorNd des_jnt_pos_, setpoint_, prev_setpoint_, old_point_;
 
-  trajectory_msgs::JointTrajectoryConstPtr trajectory_;
-  size_t trajectory_ptr_;
+  TRAJECTORY_TYPE trajectory_;
+
+  size_t trajectory_idx_;
 
   bool first_step_;
 };
 
 using namespace RTT;
 
-template <unsigned NUMBER_OF_JOINTS>
-InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::InternalSpaceSplineTrajectoryGenerator(
+template <class TRAJECTORY_TYPE >
+InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::InternalSpaceSplineTrajectoryGenerator(
     const std::string& name)
-    : RTT::TaskContext(name, PreOperational),
-      last_point_not_set_(false),
-      trajectory_active_(false),
-      trajectory_ptr_(0),
-      port_trajectory_in_("trajectoryPtr_INPORT"),
-      port_internal_space_position_command_out_("JointPositionCommand_OUTPORT", true),
-//      port_generator_active_out_("GeneratorActive_OUTPORT", true),
-      port_internal_space_position_measurement_in_("JointPosition_INPORT"),
-      port_is_synchronised_in_("IsSynchronised_INPORT") {
-  this->ports()->addPort(port_trajectory_in_);
+    : RTT::TaskContext(name, PreOperational)
+    , last_point_not_set_(false)
+    , trajectory_idx_(0)
+    , trajectory_(TRAJECTORY_TYPE())
+    , port_jnt_command_in_("jnt_INPORT")
+    , port_internal_space_position_command_out_("JointPositionCommand_OUTPORT", true)
+    , port_internal_space_position_measurement_in_("JointPosition_INPORT")
+    , port_is_synchronised_in_("IsSynchronised_INPORT")
+    , port_generator_status_out_("generator_status_OUTPORT")
+    , port_stiffness_command_out_("stiffness_command_OUTPORT") {
+  this->ports()->addPort(port_jnt_command_in_);
   this->ports()->addPort(port_internal_space_position_command_out_);
   this->ports()->addPort(port_internal_space_position_measurement_in_);
-//  this->ports()->addPort(port_generator_active_out_);
   this->ports()->addPort(port_is_synchronised_in_);
+  this->ports()->addPort(port_generator_status_out_);
+  this->ports()->addPort(port_stiffness_command_out_);
 
   return;
 }
 
-template <unsigned NUMBER_OF_JOINTS>
-InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::~InternalSpaceSplineTrajectoryGenerator() {
+template <class TRAJECTORY_TYPE >
+InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::~InternalSpaceSplineTrajectoryGenerator() {
   return;
 }
 
-template <unsigned NUMBER_OF_JOINTS>
-bool InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::configureHook() {
+template <class TRAJECTORY_TYPE >
+bool InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::configureHook() {
   Logger::In in("InternalSpaceSplineTrajectoryGenerator::configureHook");
 
-  vel_profile_.resize(NUMBER_OF_JOINTS);
+  vel_profile_.resize(TRAJECTORY_TYPE::DOFS);
 
   return true;
 }
 
-template <unsigned NUMBER_OF_JOINTS>
-bool InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::startHook() {
+template <class TRAJECTORY_TYPE >
+bool InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::startHook() {
   RESTRICT_ALLOC;
 
   first_step_ = true;
 
-/*
-  bool is_synchronised = true;
-
-  FlowStatus read_status = port_internal_space_position_measurement_in_.read(setpoint_);
-  if (read_status == RTT::NoData) {
-    Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
-    Logger::log() << Logger::Error << "could not read data on port "
-                  << port_internal_space_position_measurement_in_.getName() << Logger::endl;
-    return false;
-  }
-  else if (read_status == RTT::OldData) {
-    Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
-    Logger::log() << Logger::Error << "could not read new data on port "
-                  << port_internal_space_position_measurement_in_.getName() << Logger::endl;
-    return false;
-  }
-
-  port_is_synchronised_in_.read(is_synchronised);
-
-  if (!is_synchronised) {
-    return false;
-  }
-*/
-//  port_generator_active_out_.write(true);
   last_point_not_set_ = false;
-  trajectory_active_ = false;
+
+  resetTrajectory();
+
+  generator_status_ = internal_space_spline_trajectory_status::INACTIVE;
+
   return true;
 }
 
-template <unsigned NUMBER_OF_JOINTS>
-void InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::stopHook() {
-//  port_generator_active_out_.write(false);
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::stopHook() {
   UNRESTRICT_ALLOC;
 }
 
-template <unsigned NUMBER_OF_JOINTS>
-void InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::updateHook() {
-//  port_generator_active_out_.write(true);
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::updateHook() {
 
   if (first_step_) {
     FlowStatus read_status = port_internal_space_position_measurement_in_.read(setpoint_);
     if (read_status == RTT::NoData) {
-      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
       Logger::log() << Logger::Error << "could not read data on port "
                     << port_internal_space_position_measurement_in_.getName() << Logger::endl;
       error();
       return;
     }
     else if (read_status == RTT::OldData) {
-      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
       Logger::log() << Logger::Error << "could not read new data on port "
                     << port_internal_space_position_measurement_in_.getName() << Logger::endl;
       error();
@@ -201,121 +192,169 @@ void InternalSpaceSplineTrajectoryGenerator<NUMBER_OF_JOINTS>::updateHook() {
     port_is_synchronised_in_.read(is_synchronised);
 
     if (!is_synchronised) {
-      Logger::In in("InternalSpaceSplineTrajectoryGenerator::startHook");
+      Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
       Logger::log() << Logger::Error << "not synchronised" << Logger::endl;
       error();
       return;
     }
-
-
     first_step_ = false;
   }
 
-  trajectory_msgs::JointTrajectoryConstPtr trj_ptr_tmp;
-  if (port_trajectory_in_.read(trj_ptr_tmp) == RTT::NewData) {
-    trajectory_ = trj_ptr_tmp;
-    trajectory_ptr_ = 0;
-    old_point_ = setpoint_;
-    last_point_not_set_ = true;
-    trajectory_active_ = true;
-  }
-
-  ros::Time now = rtt_rosclock::host_now();
-  if (trajectory_active_ && trajectory_ && (trajectory_->header.stamp < now)) {
-    for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
-      ros::Time trj_time = trajectory_->header.stamp
-          + trajectory_->points[trajectory_ptr_].time_from_start;
-      if (trj_time > now) {
-        for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++) {
-          if (trajectory_ptr_ < 1) {
-            if (trajectory_->points[trajectory_ptr_].accelerations.size() > 0
-                && trajectory_->points[trajectory_ptr_].velocities.size() > 0) {
-              vel_profile_[i].SetProfileDuration(
-                  old_point_(i), 0.0, 0.0,
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  trajectory_->points[trajectory_ptr_].velocities[i],
-                  trajectory_->points[trajectory_ptr_].accelerations[i],
-                  trajectory_->points[trajectory_ptr_].time_from_start.toSec());
-            } else if (trajectory_->points[trajectory_ptr_].velocities.size()
-                > 0) {
-              vel_profile_[i].SetProfileDuration(
-                  old_point_(i), 0.0,
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  trajectory_->points[trajectory_ptr_].velocities[i],
-                  trajectory_->points[trajectory_ptr_].time_from_start.toSec());
-            } else {
-              vel_profile_[i].SetProfileDuration(
-                  old_point_(i),
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  trajectory_->points[trajectory_ptr_].time_from_start.toSec());
-            }
-          } else {
-            if (trajectory_->points[trajectory_ptr_ - 1].accelerations.size()
-                > 0
-                && trajectory_->points[trajectory_ptr_].accelerations.size()
-                    > 0) {
-              vel_profile_[i].SetProfileDuration(
-                  trajectory_->points[trajectory_ptr_ - 1].positions[i],
-                  trajectory_->points[trajectory_ptr_ - 1].velocities[i],
-                  trajectory_->points[trajectory_ptr_ - 1].accelerations[i],
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  trajectory_->points[trajectory_ptr_].velocities[i],
-                  trajectory_->points[trajectory_ptr_].accelerations[i],
-                  (trajectory_->points[trajectory_ptr_].time_from_start
-                      - trajectory_->points[trajectory_ptr_ - 1].time_from_start)
-                      .toSec());
-            } else if (trajectory_->points[trajectory_ptr_ - 1].velocities.size()
-                > 0
-                && trajectory_->points[trajectory_ptr_].velocities.size() > 0) {
-              vel_profile_[i].SetProfileDuration(
-                  trajectory_->points[trajectory_ptr_ - 1].positions[i],
-                  trajectory_->points[trajectory_ptr_ - 1].velocities[i],
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  trajectory_->points[trajectory_ptr_].velocities[i],
-                  (trajectory_->points[trajectory_ptr_].time_from_start
-                      - trajectory_->points[trajectory_ptr_ - 1].time_from_start)
-                      .toSec());
-            } else {
-              vel_profile_[i].SetProfileDuration(
-                  trajectory_->points[trajectory_ptr_ - 1].positions[i],
-                  trajectory_->points[trajectory_ptr_].positions[i],
-                  (trajectory_->points[trajectory_ptr_].time_from_start
-                      - trajectory_->points[trajectory_ptr_ - 1].time_from_start)
-                      .toSec());
-            }
-          }
+    if (port_jnt_command_in_.read(jnt_command_in_) == RTT::NewData) {
+// TODO: add command checking
+        trajectory_ = jnt_command_in_;
+        trajectory_idx_ = 0;
+        old_point_ = setpoint_;
+        prev_setpoint_ = setpoint_;
+        last_point_not_set_ = true;
+        generator_status_ = internal_space_spline_trajectory_status::ACTIVE;
+        for (int i = 0; i < TRAJECTORY_TYPE::DOFS; ++i) {
+            stiffness_command_out_(i) = trajectory_.stiffness[i];
         }
-        break;
-      }
     }
 
-    if (trajectory_ptr_ < trajectory_->points.size()) {
-      double t;
-      if (trajectory_ptr_ < 1) {
-        t = (now - trajectory_->header.stamp).toSec();
-      } else {
-        t = (now - trajectory_->header.stamp).toSec()
-            - trajectory_->points[trajectory_ptr_ - 1].time_from_start.toSec();
-      }
+    ros::Time now = rtt_rosclock::host_now();
+    if (trajectory_idx_ < trajectory_.count_trj && (trajectory_.start < now)) {
+        for (; trajectory_idx_ < trajectory_.count_trj; trajectory_idx_++) {
+            ros::Time trj_time = trajectory_.start
+                + trajectory_.trj[trajectory_idx_].time_from_start;
+            if (trj_time > now) {
+                for (unsigned int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
+                    if (trajectory_idx_ < 1) {
+                        if (trajectory_.trj[trajectory_idx_].use_accelerations
+                              && trajectory_.trj[trajectory_idx_].use_velocities) {
+                            vel_profile_[i].SetProfileDuration(
+                                old_point_(i), 0.0, 0.0,
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                trajectory_.trj[trajectory_idx_].velocities[i],
+                                trajectory_.trj[trajectory_idx_].accelerations[i],
+                                trajectory_.trj[trajectory_idx_].time_from_start.toSec());
+                        } else if (trajectory_.trj[trajectory_idx_].use_velocities) {
+                            vel_profile_[i].SetProfileDuration(
+                                old_point_(i), 0.0,
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                trajectory_.trj[trajectory_idx_].velocities[i],
+                                trajectory_.trj[trajectory_idx_].time_from_start.toSec());
+                        } else {
+                            vel_profile_[i].SetProfileDuration(
+                                old_point_(i),
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                trajectory_.trj[trajectory_idx_].time_from_start.toSec());
+                          }
+                      } else {
+                        if (trajectory_.trj[trajectory_idx_ - 1].use_accelerations
+                              && trajectory_.trj[trajectory_idx_].use_accelerations
+                              && trajectory_.trj[trajectory_idx_ - 1].use_velocities
+                              && trajectory_.trj[trajectory_idx_].use_velocities) {
+                            vel_profile_[i].SetProfileDuration(
+                                trajectory_.trj[trajectory_idx_ - 1].positions[i],
+                                trajectory_.trj[trajectory_idx_ - 1].velocities[i],
+                                trajectory_.trj[trajectory_idx_ - 1].accelerations[i],
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                trajectory_.trj[trajectory_idx_].velocities[i],
+                                trajectory_.trj[trajectory_idx_].accelerations[i],
+                                (trajectory_.trj[trajectory_idx_].time_from_start
+                                    - trajectory_.trj[trajectory_idx_ - 1].time_from_start)
+                                    .toSec());
+                        } else if (trajectory_.trj[trajectory_idx_ - 1].use_velocities
+                              && trajectory_.trj[trajectory_idx_].use_velocities) {
+                            vel_profile_[i].SetProfileDuration(
+                                trajectory_.trj[trajectory_idx_ - 1].positions[i],
+                                trajectory_.trj[trajectory_idx_ - 1].velocities[i],
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                trajectory_.trj[trajectory_idx_].velocities[i],
+                                (trajectory_.trj[trajectory_idx_].time_from_start
+                                    - trajectory_.trj[trajectory_idx_ - 1].time_from_start)
+                                    .toSec());
+                        } else {
+                            vel_profile_[i].SetProfileDuration(
+                                trajectory_.trj[trajectory_idx_ - 1].positions[i],
+                                trajectory_.trj[trajectory_idx_].positions[i],
+                                (trajectory_.trj[trajectory_idx_].time_from_start
+                                    - trajectory_.trj[trajectory_idx_ - 1].time_from_start)
+                                    .toSec());
+                        }
+                    }
+                }
+                break;
+            }
+        }
 
-      for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++) {
-        setpoint_(i) = vel_profile_[i].Pos(t);
-        // setpoint_.setpoints[i].velocity = velProfile_[i].Vel(time * dt);
-        // setpoint_.setpoints[i].acceleration = velProfile_[i].Acc(time * dt);
-      }
+        if (port_internal_space_position_measurement_in_.read(internal_space_position_measurement_in_) != RTT::NewData) {
+            error();
+            return;
+        }
 
-    } else if (last_point_not_set_) {
-      for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++) {
-        setpoint_(i) = trajectory_->points[trajectory_->points.size() - 1]
-            .positions[i];
-      }
-      trajectory_ = trajectory_msgs::JointTrajectoryConstPtr();
-      last_point_not_set_ = false;
+        if (trajectory_idx_ < trajectory_.count_trj) {
+            double t;
+            if (trajectory_idx_ < 1) {
+                t = (now - trajectory_.start).toSec();
+            } else {
+                t = (now - trajectory_.start).toSec()
+                    - trajectory_.trj[trajectory_idx_ - 1].time_from_start.toSec();
+            }
+
+            for (unsigned int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
+                setpoint_(i) = vel_profile_[i].Pos(t);
+            }
+
+        } else if (last_point_not_set_) {
+            for (unsigned int i = 0; i < TRAJECTORY_TYPE::DOFS; i++) {
+                setpoint_(i) = trajectory_.trj[trajectory_.count_trj - 1]
+                    .positions[i];
+            }
+            last_point_not_set_ = false;
+        }
+
+        // check path tolerance
+        for (int i = 0; i < TRAJECTORY_TYPE::DOFS; ++i) {
+            if ( trajectory_.path_tolerance[i] > 0 && fabs(internal_space_position_measurement_in_(i)-prev_setpoint_(i)) > trajectory_.path_tolerance[i]) {
+                resetTrajectory();
+                generator_status_ = internal_space_spline_trajectory_status::PATH_TOLERANCE_VIOLATED;
+            }
+        }
+
+        prev_setpoint_ = setpoint_;
     }
-  }
 
-  port_internal_space_position_command_out_.write(setpoint_);
+    if (trajectory_idx_ > 0 && trajectory_idx_ == trajectory_.count_trj) {
+        ros::Time goal_time = trajectory_.start + trajectory_.trj[trajectory_.count_trj - 1].time_from_start;
+        // check goal tolerance
+        bool goal_reached = true;
+        for (int i = 0; i < TRAJECTORY_TYPE::DOFS; ++i) {
+            if ( trajectory_.goal_tolerance[i] > 0 && fabs(internal_space_position_measurement_in_(i)-prev_setpoint_(i)) > trajectory_.goal_tolerance[i]) {
+                goal_reached = false;
+            }
+        }
+
+        if (now > goal_time + trajectory_.goal_time_tolerance) {
+            if (goal_reached) {
+                resetTrajectory();
+                generator_status_ = internal_space_spline_trajectory_status::SUCCESSFUL;
+            }
+            else {
+                resetTrajectory();
+                generator_status_ = internal_space_spline_trajectory_status::GOAL_TOLERANCE_VIOLATED;
+            }
+        }
+        else if (now > goal_time - trajectory_.goal_time_tolerance) {
+            if (goal_reached) {
+                resetTrajectory();
+                generator_status_ = internal_space_spline_trajectory_status::SUCCESSFUL;
+            }
+        }
+    }
+    port_generator_status_out_.write(generator_status_);
+
+    port_stiffness_command_out_.write(stiffness_command_out_);
+    port_internal_space_position_command_out_.write(setpoint_);
 }
 
-#endif  // INTERNALSPACESPLINETRAJECTORYGENERATOR_H_
+template <class TRAJECTORY_TYPE >
+void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::resetTrajectory() {
+  trajectory_idx_ = 0;
+  trajectory_ = TRAJECTORY_TYPE();
+}
+
+#endif  // CONTROLLER_COMMON_INTERNAL_SPACE_SPLINE_TRAJECTORY_GENERATOR_H_
 
