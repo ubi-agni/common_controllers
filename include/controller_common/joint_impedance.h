@@ -170,9 +170,6 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
   joint_torque_command_.noalias() = k_.cwiseProduct(joint_error_);
 
   port_mass_matrix_.read(m_);
-//  std::cout << "mass matrix:" << std::endl;
-//  std::cout << joint_velocity_.transpose() << std::endl;
-//  Logger::log() << Logger::Error << m_ << Logger::endl;
 
   tmpNN_ = k_.asDiagonal();
 
@@ -184,9 +181,7 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
 
   tmpNN_ = k0_.cwiseAbs().cwiseSqrt().asDiagonal();
 
-  d_.noalias() = tmpNN_ * q_;
-  d_.noalias() = q_.transpose() * d_;
-  d_.noalias() = 2.0 * 0.7 * d_;
+  d_.noalias() = 2.0 * q_.transpose() * 0.7 * tmpNN_ * q_;
 
   if (!joint_torque_command_.allFinite()) {
     RTT::Logger::In in("JointImpedance::updateHook");
