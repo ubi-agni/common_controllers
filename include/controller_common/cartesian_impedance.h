@@ -101,6 +101,8 @@ class CartesianImpedance: public RTT::TaskContext {
   Jacobian tmpKN_;
   JacobianT tmpNK_;
   Stiffness tmpK_;
+
+  bool first_step_;
 };
 
 #ifdef EIGEN_RUNTIME_NO_MALLOC
@@ -217,52 +219,9 @@ template <unsigned DOFS, unsigned EFFECTORS>
   bool CartesianImpedance<DOFS, EFFECTORS>::startHook() {
     RESTRICT_ALLOC;
 
-    for (size_t i = 0; i < EFFECTORS; i++) {
-      Kc(i * 6 + 0) = 1;
-      Kc(i * 6 + 1) = 1;
-      Kc(i * 6 + 2) = 1500;
-      Kc(i * 6 + 3) = 150;
-      Kc(i * 6 + 4) = 150;
-      Kc(i * 6 + 5) = 150;
+    first_step_ = true;
 
-      Dxi(i * 6 + 0) = 0.7;
-      Dxi(i * 6 + 1) = 0.7;
-      Dxi(i * 6 + 2) = 0.7;
-      Dxi(i * 6 + 3) = 0.7;
-      Dxi(i * 6 + 4) = 0.7;
-      Dxi(i * 6 + 5) = 0.7;
-
-      geometry_msgs::Pose pos;
-      if (port_tool_position_command_[i]->read(pos) == RTT::NewData) {
-        tools[i](0) = pos.position.x;
-        tools[i](1) = pos.position.y;
-        tools[i](2) = pos.position.z;
-
-        tools[i](3) = pos.orientation.w;
-        tools[i](4) = pos.orientation.x;
-        tools[i](5) = pos.orientation.y;
-        tools[i](6) = pos.orientation.z;
-      }
-      else {
-        return false;
-      }
-    }
-
-    for (size_t i = 0; i < DOFS; i++) {
-      nullspace_torque_command_(i) = 0.0;
-    }
-
-    if (port_joint_position_.read(joint_position_) == RTT::NewData) {
-      robot_->fkin(&r_cmd[0], joint_position_, &tools[0]);
-
-      for (size_t i = 0; i < EFFECTORS; i++) {
-        geometry_msgs::Pose pos;
-        tf::poseEigenToMsg(r_cmd[i], pos);
-        port_cartesian_position_[i]->write(pos);
-      }
-    } else {
-      return false;
-    }
+    nullspace_torque_command_.setZero();
 
     UNRESTRICT_ALLOC;
     return true;
@@ -280,11 +239,71 @@ template <unsigned DOFS, unsigned EFFECTORS>
   void CartesianImpedance<DOFS, EFFECTORS>::updateHook() {
 
     RESTRICT_ALLOC;
+
+    if (first_step_) {
+      for (size_t i = 0; i < EFFECTORS; i++) {
+        Kc(i * 6 + 0) = 1;
+        Kc(i * 6 + 1) = 1;
+        Kc(i * 6 + 2) = 1500;
+        Kc(i * 6 + 3) = 150;
+        Kc(i * 6 + 4) = 150;
+        Kc(i * 6 + 5) = 150;
+
+        Dxi(i * 6 + 0) = 0.7;
+        Dxi(i * 6 + 1) = 0.7;
+        Dxi(i * 6 + 2) = 0.7;
+        Dxi(i * 6 + 3) = 0.7;
+        Dxi(i * 6 + 4) = 0.7;
+        Dxi(i * 6 + 5) = 0.7;
+
+        geometry_msgs::Pose pos;
+        if (port_tool_position_command_[i]->read(pos) == RTT::NewData) {
+          tools[i](0) = pos.position.x;
+          tools[i](1) = pos.position.y;
+          tools[i](2) = pos.position.z;
+
+          tools[i](3) = pos.orientation.w;
+          tools[i](4) = pos.orientation.x;
+          tools[i](5) = pos.orientation.y;
+          tools[i](6) = pos.orientation.z;
+        }
+        else {
+          RTT::Logger::In in("CartesianImpedance::updateHook");
+          error();
+          RTT::log(RTT::Error) << "could not read port \'" << port_tool_position_command_[i]->getName() << "\'" << RTT::endlog();
+          return;
+        }
+      }
+/*
+      if (port_joint_position_.read(joint_position_) == RTT::NewData) {
+        robot_->fkin(&r_cmd[0], joint_position_, &tools[0]);
+
+        for (size_t i = 0; i < EFFECTORS; i++) {
+          geometry_msgs::Pose pos;
+          tf::poseEigenToMsg(r_cmd[i], pos);
+          port_cartesian_position_[i]->write(pos);
+        }
+      } else {
+        error();
+        RTT::log(RTT::Error) << "could not read tool position command" << RTT::endlog();
+        return;
+      }
+*/
+      first_step_ = false;
+    }
+
+
     // ToolMass toolsM[K];
     Eigen::Affine3d r[EFFECTORS];
 
     // read inputs
-    port_joint_position_.read(joint_position_);
+    if (port_joint_position_.read(joint_position_) != RTT::NewData) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
+        error();
+        RTT::log(RTT::Error) << "could not read port \'" << port_joint_position_.getName() << "\'" << RTT::endlog();
+        return;
+    }
+
     if (!joint_position_.allFinite()) {
         RTT::Logger::In in("CartesianImpedance::updateHook");
         error();

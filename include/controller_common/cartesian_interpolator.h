@@ -101,6 +101,8 @@ class CartesianInterpolator : public RTT::TaskContext {
   bool trajectory_active_;
 
   bool check_tolerances_;
+
+  bool first_step_;
 };
 
 template <class TRAJECTORY_TYPE >
@@ -138,21 +140,7 @@ bool CartesianInterpolator<TRAJECTORY_TYPE >::configureHook() {
 
 template <class TRAJECTORY_TYPE >
 bool CartesianInterpolator<TRAJECTORY_TYPE >::startHook() {
-  if (activate_pose_init_property_) {
-    setpoint_ = init_setpoint_property_;
-  } else {
-    if (port_cartesian_position_.read(setpoint_) != RTT::NewData) {
-      Logger::In in("CartesianInterpolator::startHook");
-      Logger::log() << Logger::Error << "could not read data on port "
-                    << port_cartesian_position_.getName() << Logger::endl;
-      return false;
-    }
-  }
-
-  last_point_not_set_ = false;
-  trajectory_active_ = false;
-  generator_status_ = cartesian_status::INACTIVE;
-
+  first_step_ = true;
   return true;
 }
 
@@ -162,6 +150,23 @@ void CartesianInterpolator<TRAJECTORY_TYPE >::stopHook() {
 
 template <class TRAJECTORY_TYPE >
 void CartesianInterpolator<TRAJECTORY_TYPE >::updateHook() {
+  if (first_step_) {
+    if (activate_pose_init_property_) {
+      setpoint_ = init_setpoint_property_;
+    } else {
+      if (port_cartesian_position_.read(setpoint_) != RTT::NewData) {
+        Logger::In in("CartesianInterpolator::updateHook");
+        Logger::log() << Logger::Error << "could not read data on port "
+                      << port_cartesian_position_.getName() << Logger::endl;
+        error();
+        return;
+      }
+    }
+
+    last_point_not_set_ = false;
+    trajectory_active_ = false;
+    generator_status_ = cartesian_status::INACTIVE;
+  }
 
   if (port_trajectory_.read(trajectory_) == RTT::NewData) {
     trajectory_idx_ = 0;
@@ -198,9 +203,17 @@ void CartesianInterpolator<TRAJECTORY_TYPE >::updateHook() {
 
   if (check_tolerances_) {
     geometry_msgs::Pose pose_msr;
-    if (port_cartesian_position_.read(pose_msr) != RTT::NewData) {
-      error();
-      return;
+    if (first_step_) {
+        pose_msr = setpoint_;
+    }
+    else {
+        if (port_cartesian_position_.read(pose_msr) != RTT::NewData) {
+            Logger::In in("CartesianInterpolator::updateHook");
+            Logger::log() << Logger::Error << "could not read data on port "
+                          << port_cartesian_position_.getName() << Logger::endl;
+          error();
+          return;
+        }
     }
 
     Eigen::Affine3d actual, desired, error;
@@ -246,6 +259,8 @@ void CartesianInterpolator<TRAJECTORY_TYPE >::updateHook() {
   port_generator_status_out_.write(generator_status_);
 
   port_cartesian_command_.write(setpoint_);
+
+  first_step_ = false;
 }
 
 template <class TRAJECTORY_TYPE >

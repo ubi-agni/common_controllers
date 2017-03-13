@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014, Robot Control and Pattern Recognition Group, Warsaw University of Technology
+ Copyright (c) 2014-2017, Robot Control and Pattern Recognition Group, Warsaw University of Technology
  All rights reserved.
  
  Redistribution and use in source and binary forms, with or without
@@ -157,7 +157,9 @@ void CartImpAction<TRAJECTORY_TYPE >::updateHook() {
 
   if (goal_active_ && cycles_ > 2) {
     if (generator_status == 3) {
-      // do nothing
+      res.error_code = cartesian_trajectory_msgs::CartImpResult::UNKNOWN_ERROR;
+      activeGoal_.setAborted(res);
+      goal_active_ = false;
     }
     else if (generator_status == cartesian_status::INACTIVE) {
       // do nothing
