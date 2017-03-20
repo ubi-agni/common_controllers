@@ -22,10 +22,6 @@ ScalarDummy::ScalarDummy(const std::string& name)
 ScalarDummy::~ScalarDummy() {
 }
 
-bool ScalarDummy::configureHook() {
-  return true;
-}
-
 bool ScalarDummy::startHook() {
   return true;
 }

@@ -7,12 +7,13 @@
  */
 
 #include "simple_transmision_inv.h"
+#include <rtt/Logger.hpp>
 
 #include <string>
 
 SimpleTransmisionInv::SimpleTransmisionInv(const std::string& name)
   : RTT::TaskContext(name),
-    gear_(1.0),
+    gear_(0.0),
     encoder_res_(1.0),
     motor_offset_(0.0),
     joint_offset_(0.0),
@@ -42,7 +43,12 @@ SimpleTransmisionInv::~SimpleTransmisionInv() {
 }
 
 bool SimpleTransmisionInv::configureHook() {
-  return true;
+    if (gear_ == 0.0) {
+        RTT::Logger::In in("SimpleTransmisionInv::configureHook: " + getName());
+        RTT::Logger::log() << RTT::Logger::Error << "property \'gear\' is not set" << RTT::Logger::endl;
+        return false;
+    }
+    return true;
 }
 
 bool SimpleTransmisionInv::startHook() {

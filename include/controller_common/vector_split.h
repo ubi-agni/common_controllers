@@ -14,7 +14,7 @@ template <int n1, int n2, int n3, int n4>
 class VectorSplit : public RTT::TaskContext {
  public:
   explicit VectorSplit(const std::string & name) :
-    TaskContext(name, PreOperational),
+    TaskContext(name),
     port_input_("In"),
     port_output1_("Out0", true),
     port_output2_("Out1", true),
@@ -29,10 +29,6 @@ class VectorSplit : public RTT::TaskContext {
   }
 
   ~VectorSplit() {
-  }
-
-  bool configureHook() {
-    return true;
   }
 
   bool startHook() {

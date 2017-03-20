@@ -152,6 +152,7 @@ void JointLimitAvoidance<DOFS>::updateHook() {
 template <unsigned DOFS>
 bool JointLimitAvoidance<DOFS>::startHook() {
   RESTRICT_ALLOC;
+  return true;
 }
 
 template <unsigned DOFS>

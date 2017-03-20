@@ -18,7 +18,6 @@ class ScalarDummy: public RTT::TaskContext {
  public:
   explicit ScalarDummy(const std::string& name);
   virtual ~ScalarDummy();
-  virtual bool configureHook();
   virtual bool startHook();
   virtual void updateHook();
 

@@ -13,7 +13,7 @@
 #include "rtt_rosclock/rtt_rosclock.h"
 
 TfPublisher::TfPublisher(const std::string& name)
-    : RTT::TaskContext(name),
+    : RTT::TaskContext(name, PreOperational),
       N_(0) {
   this->ports()->addPort("OutTf", port_out_tf_);
   this->addProperty("frame_ids", frame_ids_);

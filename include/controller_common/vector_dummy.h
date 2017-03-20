@@ -37,7 +37,7 @@ template <int n>
 class VectorDummy : public RTT::TaskContext {
  public:
   explicit VectorDummy(const std::string & name)
-    : RTT::TaskContext(name, PreOperational)
+    : RTT::TaskContext(name)
     , port_out_("vector_OUTPORT") {
 
     this->ports()->addPort(port_out_);
@@ -45,10 +45,6 @@ class VectorDummy : public RTT::TaskContext {
   }
 
   ~VectorDummy() {
-  }
-
-  bool configureHook() {
-    return true;
   }
 
   void updateHook() {

@@ -15,7 +15,7 @@ template <int n1, int n2, int n3, int n4>
 class VectorConcate : public RTT::TaskContext {
  public:
   explicit VectorConcate(const std::string & name) :
-    RTT::TaskContext(name, PreOperational),
+    RTT::TaskContext(name),
     port_input1_("In0"),
     port_input2_("In1"),
     port_input3_("In2"),
@@ -30,10 +30,6 @@ class VectorConcate : public RTT::TaskContext {
   }
 
   ~VectorConcate() {
-  }
-
-  bool configureHook() {
-    return true;
   }
 
   void updateHook() {

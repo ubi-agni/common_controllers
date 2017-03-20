@@ -14,7 +14,7 @@
 
 SimpleTransmision::SimpleTransmision(const std::string& name)
   : RTT::TaskContext(name),
-    gear_(1.0),
+    gear_(0.0),
     encoder_res_(1.0),
     motor_offset_(0.0),
     joint_offset_(0.0),
@@ -38,7 +38,12 @@ SimpleTransmision::~SimpleTransmision() {
 }
 
 bool SimpleTransmision::configureHook() {
-  return true;
+    if (gear_ == 0.0) {
+        RTT::Logger::In in("SimpleTransmision::configureHook: " + getName());
+        RTT::Logger::log() << RTT::Logger::Error << "property \'gear\' is not set" << RTT::Logger::endl;
+        return false;
+    }
+    return true;
 }
 
 bool SimpleTransmision::startHook() {

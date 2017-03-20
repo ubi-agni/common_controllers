@@ -28,7 +28,6 @@ class CartesianImpedanceInterpolator : public RTT::TaskContext {
  public:
   explicit CartesianImpedanceInterpolator(const std::string& name);
   virtual ~CartesianImpedanceInterpolator();
-  virtual bool configureHook();
   virtual bool startHook();
   virtual void updateHook();
 
@@ -69,11 +68,6 @@ CartesianImpedanceInterpolator<TRAJECTORY_TYPE >::CartesianImpedanceInterpolator
 
 template <class TRAJECTORY_TYPE >
 CartesianImpedanceInterpolator<TRAJECTORY_TYPE >::~CartesianImpedanceInterpolator() {
-}
-
-template <class TRAJECTORY_TYPE >
-bool CartesianImpedanceInterpolator<TRAJECTORY_TYPE >::configureHook() {
-  return true;
 }
 
 template <class TRAJECTORY_TYPE >

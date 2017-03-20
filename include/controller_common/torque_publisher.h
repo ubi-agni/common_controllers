@@ -44,7 +44,7 @@ class TorquePublisher: public RTT::TaskContext {
 
 template <unsigned DOFS>
 TorquePublisher<DOFS>::TorquePublisher(const std::string& name)
-    : RTT::TaskContext(name) {
+    : RTT::TaskContext(name, PreOperational) {
   this->ports()->addPort("InJointTorque", port_in_joint_torque_);
   this->ports()->addPort("InJointTorqueCommand", port_in_joint_torque_command_);
   this->ports()->addPort("InGravityTorque", port_in_grav_torque_);
