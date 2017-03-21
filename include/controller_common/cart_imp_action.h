@@ -163,6 +163,9 @@ void CartImpAction<TRAJECTORY_TYPE >::updateHook() {
     }
     else if (generator_status == cartesian_status::INACTIVE) {
       // do nothing
+      res.error_code = cartesian_trajectory_msgs::CartImpResult::UNKNOWN_ERROR;
+      activeGoal_.setAborted(res);
+      goal_active_ = false;
     }
     else if (generator_status == cartesian_status::ACTIVE) {
 

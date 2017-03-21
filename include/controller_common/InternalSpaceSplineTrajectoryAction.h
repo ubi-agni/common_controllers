@@ -220,9 +220,17 @@ void InternalSpaceSplineTrajectoryAction<TRAJECTORY_TYPE >::updateHook() {
 
   if (goal_active_ && cycles_ > 2) {
     if (generator_status == 3) {
+// TODO: error code is wrong
+      res.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      activeGoal_.setAborted(res);
+      goal_active_ = false;
       // do nothing
     }
     else if (generator_status == internal_space_spline_trajectory_status::INACTIVE) {
+// TODO: error code is wrong
+      res.error_code = control_msgs::FollowJointTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      activeGoal_.setAborted(res);
+      goal_active_ = false;
       // do nothing
     }
     else if (generator_status == internal_space_spline_trajectory_status::ACTIVE) {
