@@ -151,7 +151,13 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
     return;
   }
 
-  port_joint_stiffness_command_.read(k_);
+  if (port_joint_stiffness_command_.read(k_) != RTT::NewData) {
+    error();
+    Logger::In in("JointImpedance::updateHook");
+    Logger::log() << Logger::Error << "no data on port "
+                  << port_joint_stiffness_command_.getName() << Logger::endl;
+    return;
+  }
 
   if (port_joint_velocity_.read(joint_velocity_) != RTT::NewData) {
     error();
@@ -169,7 +175,13 @@ void JointImpedance<NUMBER_OF_JOINTS>::updateHook() {
   joint_error_.noalias() = joint_position_command_ - joint_position_;
   joint_torque_command_.noalias() = k_.cwiseProduct(joint_error_);
 
-  port_mass_matrix_.read(m_);
+  if (port_mass_matrix_.read(m_) != RTT::NewData) {
+    error();
+    Logger::In in("JointImpedance::updateHook");
+    Logger::log() << Logger::Error << "no data on port "
+                  << port_mass_matrix_.getName() << Logger::endl;
+    return;
+  }
 
   tmpNN_ = k_.asDiagonal();
 

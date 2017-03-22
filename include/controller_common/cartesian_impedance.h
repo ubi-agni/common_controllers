@@ -363,7 +363,12 @@ template <unsigned DOFS, unsigned EFFECTORS>
       }
     }
 
-    port_mass_matrix_inv_.read(M);
+    if (port_mass_matrix_inv_.read(M) != RTT::NewData) {
+        RTT::Logger::In in("CartesianImpedance::updateHook");
+        error();
+        RTT::log(RTT::Error) << "could not read port \'" << port_mass_matrix_inv_.getName() << "\'" << RTT::endlog();
+        return;
+    }
 
     if (!M.allFinite()) {
         RTT::Logger::In in("CartesianImpedance::updateHook");
