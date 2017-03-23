@@ -27,7 +27,16 @@ include_directories(${USE_OROCOS_INCLUDE_DIRS} include)
 ADD_DEFINITIONS(-DEIGEN_RUNTIME_NO_MALLOC)
 ### Orocos Targets ###
 
-orocos_component(controller_common src/controller_common.cpp src/pose_transform.cpp src/tf_publisher.cpp src/simple_transmision.cpp src/simple_transmision_inv.cpp src/velocityprofile_spline.cpp src/scalar_dummy.cpp)
+orocos_component(controller_common
+  src/controller_common.cpp
+  src/pose_transform.cpp
+  src/tf_publisher.cpp
+  src/simple_transmision.cpp
+  src/simple_transmision_inv.cpp
+  src/velocityprofile_spline.cpp
+  src/scalar_dummy.cpp
+  src/scalar_eigen_double.cpp
+)
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
 ### Orocos Package Exports and Install Targets ###

@@ -22,10 +22,22 @@ class VectorSplit : public RTT::TaskContext {
     port_output4_("Out3", true) {
 
     this->ports()->addPort(port_input_);
-    this->ports()->addPort(port_output1_);
-    this->ports()->addPort(port_output2_);
-    this->ports()->addPort(port_output3_);
-    this->ports()->addPort(port_output4_);
+
+    if (n1 > 0) {
+        this->ports()->addPort(port_output1_);
+    }
+
+    if (n2 > 0) {
+        this->ports()->addPort(port_output2_);
+    }
+
+    if (n3 > 0) {
+        this->ports()->addPort(port_output3_);
+    }
+
+    if (n4 > 0) {
+        this->ports()->addPort(port_output4_);
+    }
   }
 
   ~VectorSplit() {
@@ -38,15 +50,25 @@ class VectorSplit : public RTT::TaskContext {
   void updateHook() {
     if (port_input_.read(input_) == RTT::NewData) {
 
-      output1_ = input_.template block<n1, 1>(0, 0);
-      output2_ = input_.template block<n2, 1>(n1, 0);
-      output3_ = input_.template block<n3, 1>(n1+n2, 0);
-      output4_ = input_.template block<n4, 1>(n1+n2+n3, 0);
+      if (n1 > 0) {
+          output1_ = input_.template block<n1, 1>(0, 0);
+          port_output1_.write(output1_);
+      }
 
-      port_output1_.write(output1_);
-      port_output2_.write(output2_);
-      port_output3_.write(output3_);
-      port_output4_.write(output4_);
+      if (n2 > 0) {
+          output2_ = input_.template block<n2, 1>(n1, 0);
+          port_output2_.write(output2_);
+      }
+
+      if (n3 > 0) {
+          output3_ = input_.template block<n3, 1>(n1+n2, 0);
+          port_output3_.write(output3_);
+      }
+
+      if (n4 > 0) {
+          output4_ = input_.template block<n4, 1>(n1+n2+n3, 0);
+          port_output4_.write(output4_);
+      }
     }
   }
 
