@@ -32,9 +32,9 @@
 
 #include "Eigen/Dense"
 
-#include "rtt/Component.hpp"
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"
+#include <rtt/Logger.hpp>
 
 #include "cartesian_trajectory_msgs/CartImpAction.h"
 #include "cartesian_trajectory_msgs/CartImpGoal.h"
@@ -153,8 +153,6 @@ void CartImpAction<TRAJECTORY_TYPE >::updateHook() {
     ++cycles_;
   }
 
-//std::cout << "generator_status: " << generator_status << std::endl;
-
   if (goal_active_ && cycles_ > 2) {
     if (generator_status == 3) {
       res.error_code = cartesian_trajectory_msgs::CartImpResult::UNKNOWN_ERROR;
@@ -203,6 +201,9 @@ void CartImpAction<TRAJECTORY_TYPE >::updateHook() {
 
 template <class TRAJECTORY_TYPE >
 void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
+    RTT::Logger::In in(std::string("CartImpAction(") + getName() + ")::goalCB");
+    RTT::Logger::log() << RTT::Logger::Info << RTT::Logger::endl;
+
     // cancel active goal
     if (activeGoal_.isValid() && (activeGoal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
         activeGoal_.setCanceled();
@@ -215,6 +216,7 @@ void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
 // TODO:
 //        res.error_code = 
         activeGoal_.setRejected(res);
+        RTT::Logger::log() << RTT::Logger::Info << "trajectory rejected: pose_trj size is too big" << RTT::Logger::endl;
         return;
     }
 
@@ -223,6 +225,7 @@ void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
 // TODO:
 //        res.error_code = 
         activeGoal_.setRejected(res);
+        RTT::Logger::log() << RTT::Logger::Info << "trajectory rejected: tool_trj size is too big" << RTT::Logger::endl;
         return;
     }
 
@@ -231,16 +234,18 @@ void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
 // TODO:
 //        res.error_code = 
         activeGoal_.setRejected(res);
+        RTT::Logger::log() << RTT::Logger::Info << "trajectory rejected: imp_trj size is too big" << RTT::Logger::endl;
         return;
     }
 
     if (g->pose_trj.points.size() == 0
-            && g->pose_trj.points.size() == 0
-            && g->pose_trj.points.size() == 0) {
+            && g->imp_trj.points.size() == 0
+            && g->tool_trj.points.size() == 0) {
         cartesian_trajectory_msgs::CartImpResult res;
 // TODO:
 //        res.error_code = 
         activeGoal_.setRejected(res);
+        RTT::Logger::log() << RTT::Logger::Info << "trajectory rejected: size is zero" << RTT::Logger::endl;
         return;
     }
 
@@ -271,7 +276,8 @@ void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
         port_imp_command_out_.write(imp_command_out_);
     }
 
-std::cout << "CartImpAction: sending trajectory" << std::endl;
+    RTT::Logger::log() << RTT::Logger::Info << "sending trajectory..." << RTT::Logger::endl;
+
     gh.setAccepted();
     activeGoal_ = gh;
 
