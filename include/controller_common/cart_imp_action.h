@@ -202,7 +202,6 @@ void CartImpAction<TRAJECTORY_TYPE >::updateHook() {
 template <class TRAJECTORY_TYPE >
 void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
     RTT::Logger::In in(std::string("CartImpAction(") + getName() + ")::goalCB");
-    RTT::Logger::log() << RTT::Logger::Info << RTT::Logger::endl;
 
     // cancel active goal
     if (activeGoal_.isValid() && (activeGoal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
