@@ -50,7 +50,9 @@ class JointLimitAvoidance: public RTT::TaskContext {
 
   Joints joint_position_, joint_velocity_, joint_torque_command_, nullspace_torque_command_;
 
-  std::vector<double> upper_limit_, lower_limit_, max_trq_, limit_range_;
+  boost::array<std::vector<double >, DOFS > limits_;
+
+  std::vector<double> max_trq_, limit_range_;
 
   Eigen::GeneralizedSelfAdjointEigenSolver<Inertia > es_;
   Stiffness k_, k0_;  // local stiffness
@@ -69,8 +71,12 @@ JointLimitAvoidance<DOFS>::JointLimitAvoidance(const std::string& name) :
   this->ports()->addPort("NullSpaceTorqueCommand_INPORT",
                          port_nullspace_torque_command_);
 
-  this->properties()->addProperty("upper_limit", upper_limit_);
-  this->properties()->addProperty("lower_limit", lower_limit_);
+  for (int i = 0; i < DOFS; ++i) {
+    stringstream ss;
+    ss << "limits_" << i;
+    this->properties()->addProperty(ss.str(), limits_[i]);
+  }
+
   this->properties()->addProperty("limit_range", limit_range_);
   this->properties()->addProperty("max_trq", max_trq_);
 }
@@ -83,12 +89,17 @@ template <unsigned DOFS>
 bool JointLimitAvoidance<DOFS>::configureHook() {
     RTT::Logger::In in("JointLimitAvoidance::configureHook");
 
-    if ((upper_limit_.size() != DOFS)
-        || (lower_limit_.size() != DOFS)
-        || (limit_range_.size() != DOFS)
+    if ((limit_range_.size() != DOFS)
         || (max_trq_.size() != DOFS)) {
         RTT::log(RTT::Error) << "invalid configuration data size" << RTT::endlog();
         return false;
+    }
+
+    for (int i = 0; i < DOFS; ++i) {
+        if (limits_[i].size() < 2 || (limits_[i].size()%2) != 0) {
+            RTT::log(RTT::Error) << "wrong limits for joint " << i << RTT::endlog();
+            return false;
+        }
     }
 
     return true;
@@ -116,8 +127,24 @@ void JointLimitAvoidance<DOFS>::updateHook() {
   }
 
   for (size_t i = 0; i < DOFS; i++) {
-    joint_torque_command_(i) = jointLimitTrq(upper_limit_[i],
-                               lower_limit_[i], limit_range_[i], max_trq_[i],
+    bool limit_ok = false;
+    double lo_limit, up_limit;
+    for (int j = 0; j < limits_[i].size(); j += 2) {
+        if (limits_[i][j] < joint_position_(i) && joint_position_(i) < limits_[i][j+1]) {
+            limit_ok = true;
+            lo_limit = limits_[i][j];
+            up_limit = limits_[i][j+1];
+            break;
+        }
+    }
+    if (!limit_ok) {
+        RTT::Logger::In in("JointLimitAvoidance::updateHook");
+        error();
+        RTT::log(RTT::Error) << "joint " << i << " position in not within limits: " << joint_position_(i) << RTT::endlog();
+        return;
+    }
+    joint_torque_command_(i) = jointLimitTrq(up_limit,
+                               lo_limit, limit_range_[i], max_trq_[i],
                                joint_position_(i));
     if (abs(joint_torque_command_(i)) > 0.001) {
       k_(i) = max_trq_[i]/limit_range_[i];
