@@ -44,7 +44,7 @@ bool PoseTransform::configureHook() {
     // port "0" will not be initialized - "0" is base frame
     char port_name[16];
     snprintf(port_name, sizeof(port_name), "PrimaryFrame%zu", i);  // "PrimaryFrame0" is base frame
-    port_primary_frame_pose_[i] = new typeof(*port_primary_frame_pose_[i]);
+    port_primary_frame_pose_[i] = new RTT::InputPort<geometry_msgs::Pose>();
     this->ports()->addPort(port_name, *port_primary_frame_pose_[i]);
   }
 

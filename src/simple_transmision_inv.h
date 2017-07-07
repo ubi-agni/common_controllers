@@ -35,6 +35,10 @@ class SimpleTransmisionInv: public RTT::TaskContext {
   double motor_offset_;
   double joint_offset_;
   double motor_constant_;
+
+  bool enable_position_;
+  bool enable_velocity_;
+  bool enable_torque_;
 };
 
 #endif  // SIMPLE_TRANSMISION_INV_H_

@@ -44,7 +44,7 @@ bool TfPublisher::configureHook() {
   for (size_t i = 0; i < N_; i++) {
     char name[30];
     snprintf(name, sizeof(name), "In%zu", i);
-    port_in_[i] = new typeof(*port_in_[i]);
+    port_in_[i] = new RTT::InputPort<geometry_msgs::Pose>();
     this->ports()->addPort(name, *port_in_[i]);
   }
 

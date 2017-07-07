@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   rtt_actionlib
   )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 find_package(Eigen3 REQUIRED)
 find_package(orocos_kdl REQUIRED)
 
@@ -35,6 +37,7 @@ orocos_component(controller_common
   src/simple_transmision_inv.cpp
   src/velocityprofile_spline.cpp
   src/scalar_dummy.cpp
+  src/elmo_servo_state.cpp
 )
 target_link_libraries(controller_common ${catkin_LIBRARIES} ${USE_OROCOS_LIBRARIES} ${orocos_kdl_LIBRARIES})
 
