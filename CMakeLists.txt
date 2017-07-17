@@ -33,8 +33,6 @@ orocos_component(controller_common
   src/controller_common.cpp
   src/pose_transform.cpp
   src/tf_publisher.cpp
-  src/simple_transmision.cpp
-  src/simple_transmision_inv.cpp
   src/velocityprofile_spline.cpp
   src/scalar_dummy.cpp
   src/elmo_servo_state.cpp
