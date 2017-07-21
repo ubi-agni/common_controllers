@@ -57,15 +57,11 @@ private:
 BypassComponent::BypassComponent(const std::string &name)
     : TaskContext(name, PreOperational)
 {
+    this->addOperation("addInputPort", &BypassComponent::addInputPort, this, RTT::ClientThread);
 }
 
 bool BypassComponent::addInputPort(std::shared_ptr<RTT::base::InputPortInterface > p) {
     if (!p) {
-        return false;
-    }
-
-    const std::string& name = p->getName();
-    if (name.substr(name.length()-7) != "_INPORT") {
         return false;
     }
 
@@ -81,12 +77,13 @@ bool BypassComponent::configureHook() {
         if (ipi) {
             RTT::base::OutputPortInterface* opi( dynamic_cast<RTT::base::OutputPortInterface* >(ipi->antiClone()) );
             std::string name = opi->getName();
-            name = name.substr(0, name.length()-6) + "OUTPORT";
+            name = name + "_OUTPORT";
             opi->setName(name);
             this->ports()->addPort(*opi);
             ipi_.push_back(ipi);
             opi_.push_back(opi);
             ds_.push_back(RTT::base::DataSourceBase::shared_ptr(ipi->getDataSource()));
+            ipi->setName(ipi->getName() + "_INPORT");
         }
     }
 

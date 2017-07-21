@@ -45,10 +45,22 @@ public:
     explicit CanQueueTxComponent(const std::string &name) 
         : TaskContext(name)
         , port_tx_in_("tx_INPORT")
+        , port_rx_queue_in_("rx_queue_INPORT")
         , port_tx_queue_out_("tx_queue_OUTPORT")
+        , rxCount_prev_(0)
+        , txCount_prev_(0)
+        , invert_rx_tx_(false)
     {
         this->ports()->addPort(port_tx_in_);
+        this->ports()->addPort(port_rx_queue_in_);
         this->ports()->addPort(port_tx_queue_out_);
+
+        addProperty("invert_rx_tx", invert_rx_tx_);
+
+        for (int i = 0; i < N_FRAMES*10+6; ++i) {
+            rx_queue_in_[i] = 0;
+            tx_queue_out_[i] = 0;
+        }
     }
 
     bool startHook() {
@@ -56,18 +68,70 @@ public:
     }
 
     void updateHook() {
-        can_frame fr;
-        uint16_t count = 0;
-        while (port_tx_in_.read(fr) == RTT::NewData) {
-            if (count >= N_FRAMES) {
-                RTT::Logger::In in("CanQueueTxComponent::updateHook");
-                RTT::log(RTT::Error) << "queue is overloaded" << RTT::endlog();
-                break;
+        int msgs_count = 0;
+
+        if (port_rx_queue_in_.read(rx_queue_in_) == RTT::NewData) {
+            uint16_t txCount;
+            if (invert_rx_tx_) {
+                txCount = *reinterpret_cast<uint16_t* >(rx_queue_in_.data()+2);
             }
-            serialize(fr, tx_queue_out_.data() + 6 + count * 10);
-            ++count;
+            else {
+                txCount = *reinterpret_cast<uint16_t* >(rx_queue_in_.data()+0);
+            }
+
+            if (txCount_prev_ == txCount) {
+                ++txCount_prev_;
+
+                can_frame fr;
+                while (port_tx_in_.read(fr) == RTT::NewData) {
+                    if (msgs_count >= N_FRAMES) {
+                        RTT::Logger::In in("CanQueueTxComponent::updateHook");
+                        RTT::log(RTT::Error) << "queue is overloaded" << RTT::endlog();
+                        break;
+                    }
+//                    if (msgs_count == 0) {
+//                        std::cout << "    fr.id: " << fr.id << ", fr.dlc: " << fr.dlc << std::endl;
+//                    }
+                    serialize(fr, tx_queue_out_.data() + 6 + msgs_count * 10);
+                    ++msgs_count;
+                }
+//                if (msgs_count > 1) {
+//                    msgs_count = 1;
+//                }
+
+                *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4) = msgs_count;
+
+                uint16_t rxCount;
+                if (invert_rx_tx_) {
+                    *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+2) = txCount_prev_;
+                    rxCount = *reinterpret_cast<uint16_t* >(rx_queue_in_.data()+0);
+                }
+                else {
+                    *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+0) = txCount_prev_;
+                    rxCount = *reinterpret_cast<uint16_t* >(rx_queue_in_.data()+2);
+                }
+                if (rxCount_prev_ != rxCount) {
+                    rxCount_prev_ = rxCount;
+                    //++rxCount_prev_;  // TODO: verify this on HW
+                    if (invert_rx_tx_) {
+                        *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+0) = rxCount_prev_;
+                    }
+                    else {
+                        *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+2) = rxCount_prev_;
+                    }
+                }
+                //std::cout << getName() << ": txCount(r/s): " << txCount << " / " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+0)) << "  rxCount(r/s): " << rxCount << " / " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+2)) << "  size: " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4)) << std::endl;
+            }
+            else {
+//                *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4) = msgs_count;
+                //std::cout << getName() << ": could not send tx queue txCount(r/s): " << txCount << " / " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+0)) << "  rxCount(s): " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+2)) << "  size: " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4)) << std::endl;
+            }
+
         }
-        *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4) = count;
+        else {
+//            *reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4) = msgs_count;
+            //std::cout << getName() << ": could not receive rx queue txCount(s): " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+0)) << "  rxCount(s): " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+2)) << "  size: " << (*reinterpret_cast<uint16_t* >(tx_queue_out_.data()+4)) << std::endl;
+        }
 
         port_tx_queue_out_.write(tx_queue_out_);
     }
@@ -87,8 +151,13 @@ private:
     }
 
     RTT::InputPort<can_frame > port_tx_in_;
+    RTT::InputPort<boost::array<int8_t, N_FRAMES*10+6 > > port_rx_queue_in_;
     RTT::OutputPort<boost::array<int8_t, N_FRAMES*10+6 > > port_tx_queue_out_;
+    boost::array<int8_t, N_FRAMES*10+6 > rx_queue_in_;
     boost::array<int8_t, N_FRAMES*10+6 > tx_queue_out_;
+    uint16_t rxCount_prev_;
+    uint16_t txCount_prev_;
+    bool invert_rx_tx_;
 };
 
 }   // namespace ec_can_queue

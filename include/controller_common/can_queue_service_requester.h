@@ -39,15 +39,18 @@ class CanQueueServiceRequester : public RTT::ServiceRequester {
         : RTT::ServiceRequester("can_queue", owner)
         , initialize("initialize")
         , send("send")
+        , readQueue("readQueue")
         , readReply("readReply") {
     this->addOperationCaller(initialize);
     this->addOperationCaller(send);
+    this->addOperationCaller(readQueue);
     this->addOperationCaller(readReply);
   }
 
   RTT::OperationCaller<void(const std::string&, const std::vector<std::pair<uint32_t, uint32_t > >&) > initialize;
   RTT::OperationCaller<bool(uint16_t, uint16_t, const int8_t*) > send;
-  RTT::OperationCaller<bool(uint16_t, uint16_t&, int8_t*)> readReply;
+  RTT::OperationCaller<bool() > readQueue;
+  RTT::OperationCaller<bool(uint16_t, uint16_t&, int8_t*) > readReply;
 };
 }  // namespace controller_common
 
