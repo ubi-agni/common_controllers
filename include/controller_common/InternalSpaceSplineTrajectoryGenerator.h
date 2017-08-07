@@ -171,22 +171,18 @@ void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::stopHook() {
 template <class TRAJECTORY_TYPE >
 void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::updateHook() {
 
+  bool read_port_internal_space_position_measurement_in = false;
   if (first_step_) {
     FlowStatus read_status = port_internal_space_position_measurement_in_.read(setpoint_);
-    if (read_status == RTT::NoData) {
+    if (read_status != RTT::NewData) {
       Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
       Logger::log() << Logger::Error << "could not read data on port "
                     << port_internal_space_position_measurement_in_.getName() << Logger::endl;
       error();
       return;
     }
-    else if (read_status == RTT::OldData) {
-      Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
-      Logger::log() << Logger::Error << "could not read new data on port "
-                    << port_internal_space_position_measurement_in_.getName() << Logger::endl;
-      error();
-      return;
-    }
+
+    read_port_internal_space_position_measurement_in = true;
 
     bool is_synchronised = true;
     port_is_synchronised_in_.read(is_synchronised);
@@ -280,9 +276,16 @@ void InternalSpaceSplineTrajectoryGenerator<TRAJECTORY_TYPE >::updateHook() {
             }
         }
 
-        if (port_internal_space_position_measurement_in_.read(internal_space_position_measurement_in_) != RTT::NewData) {
-            error();
-            return;
+        if (read_port_internal_space_position_measurement_in) {
+            internal_space_position_measurement_in_ = setpoint_;
+        }
+        else {
+            if (port_internal_space_position_measurement_in_.read(internal_space_position_measurement_in_) != RTT::NewData) {
+                  Logger::In in("InternalSpaceSplineTrajectoryGenerator::updateHook");
+                  Logger::log() << Logger::Error << "could not read port " << port_internal_space_position_measurement_in_.getName() << Logger::endl;
+                error();
+                return;
+            }
         }
 
         if (trajectory_idx_ < trajectory_.count_trj) {
