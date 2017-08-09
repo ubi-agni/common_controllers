@@ -248,6 +248,9 @@ void CartImpAction<TRAJECTORY_TYPE >::goalCB(GoalHandle gh) {
         return;
     }
 
+    pose_command_out_.path_tolerance = g->path_tolerance;
+    pose_command_out_.goal_tolerance = g->goal_tolerance;
+
     if (g->pose_trj.points.size() > 0) {
         pose_command_out_.start = g->pose_trj.header.stamp;
         for (int i = 0; i < g->pose_trj.points.size(); ++i) {
