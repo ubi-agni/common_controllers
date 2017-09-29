@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "eigen_patch/eigen_patch.h"
+#include <Eigen/Dense>
 
 #include "rtt/TaskContext.hpp"
 #include "rtt/Port.hpp"

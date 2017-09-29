@@ -14,7 +14,7 @@
 #include <vector>
 #include <string>
 
-#include "eigen_patch/eigen_patch.h"
+#include <Eigen/Dense>
 
 #include "rtt/RTT.hpp"
 #include "rtt/os/TimeService.hpp"

@@ -3,7 +3,7 @@
 #ifndef VECTOR_CONCATE_H_
 #define VECTOR_CONCATE_H_
 
-#include "eigen_patch/eigen_patch.h"
+#include <Eigen/Dense>
 
 #include <rtt/TaskContext.hpp>
 #include <rtt/Port.hpp>

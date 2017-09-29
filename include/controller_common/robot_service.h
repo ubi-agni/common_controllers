@@ -10,7 +10,7 @@
 #ifndef ROBOT_SERVICE_H_
 #define ROBOT_SERVICE_H_
 
-#include "eigen_patch/eigen_patch.h"
+#include <Eigen/Dense>
 
 #include <rtt/RTT.hpp>
 #include <rtt/Service.hpp>
