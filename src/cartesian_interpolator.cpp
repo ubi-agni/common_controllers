@@ -103,7 +103,7 @@ void CartesianInterpolator::updateHook() {
         setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
                                 trajectory_->points[trajectory_ptr_], now);
       }
-    } else if (last_point_not_set_) {
+    } else if (last_point_not_set_ && trajectory_->points.size() > 0) {
       setpoint_ = trajectory_->points[trajectory_->points.size() - 1].pose;
       last_point_not_set_ = false;
     }
