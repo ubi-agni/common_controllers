@@ -25,7 +25,7 @@ CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) :
     port_cartesian_wrench_("CartesianWrench_INPORT") {
 
   this->ports()->addPort(port_cartesian_trajectory_command_);
-  this->ports()->addPort(port_cartesian_trajectory_);
+  this->ports()->addEventPort(port_cartesian_trajectory_);
   this->ports()->addPort(port_cartesian_position_);
   this->ports()->addPort(port_cartesian_position_command_);
   this->ports()->addPort(port_cartesian_wrench_);
@@ -52,7 +52,7 @@ bool CartesianTrajectoryAction::startHook() {
 void CartesianTrajectoryAction::updateHook() {
   cartesian_trajectory_msgs::CartesianTrajectory trj;
   if (port_cartesian_trajectory_.read(trj) == RTT::NewData) {
-    std::cout << "New trajectory point" << std::endl;
+    RTT::Logger::log(RTT::Logger::Debug) << "New trajectory point received" << RTT::endlog();
     CartesianTrajectory* trj_ptr =  new CartesianTrajectory;
     *trj_ptr = trj;
     CartesianTrajectoryConstPtr trj_cptr = CartesianTrajectoryConstPtr(trj_ptr);
@@ -168,8 +168,10 @@ bool CartesianTrajectoryAction::checkWrenchTolerance(geometry_msgs::Wrench msr, 
 
 void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
   // cancel active goal
+  RTT::Logger::log(RTT::Logger::Debug) << "Received goal " << RTT::endlog();
   if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
     active_goal_.setCanceled();
+    RTT::Logger::log(RTT::Logger::Debug) << "Cancelling current goal" << RTT::endlog();
   }
 
   Goal g = gh.getGoal();
