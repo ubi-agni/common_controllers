@@ -10,7 +10,7 @@
 #define CARTESIAN_INTERPOLATOR_H_
 
 #include <string>
-
+#include <vector>
 #include <Eigen/Dense>
 
 #include "rtt/TaskContext.hpp"
@@ -48,7 +48,7 @@ class CartesianInterpolator : public RTT::TaskContext {
   size_t trajectory_ptr_;
 
   bool activate_pose_init_property_;
-  geometry_msgs::Pose init_setpoint_property_;
+  std::vector<double> init_setpoint_property_;
 
   bool last_point_not_set_;
   bool trajectory_active_;

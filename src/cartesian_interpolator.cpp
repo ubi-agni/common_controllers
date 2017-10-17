@@ -49,12 +49,19 @@ bool CartesianInterpolator::configureHook() {
 bool CartesianInterpolator::startHook() {
   bool is_synchronised = true;
   if (activate_pose_init_property_) {
-    setpoint_ = init_setpoint_property_;
+    setpoint_.position.x = init_setpoint_property_[0];
+    setpoint_.position.y = init_setpoint_property_[1];
+    setpoint_.position.z = init_setpoint_property_[2];
+    setpoint_.orientation.w = init_setpoint_property_[3];
+    setpoint_.orientation.x = init_setpoint_property_[4];
+    setpoint_.orientation.y = init_setpoint_property_[5];
+    setpoint_.orientation.z = init_setpoint_property_[6];
   } else {
     if (port_cartesian_position_.read(setpoint_) != RTT::NewData) {
       Logger::In in("CartesianInterpolator::startHook");
       Logger::log() << Logger::Error << "could not read data on port "
                     << port_cartesian_position_.getName() << Logger::endl;
+      
       return false;
     }
   }
