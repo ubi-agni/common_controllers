@@ -176,11 +176,29 @@ void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
 
   CartesianTrajectory* trj_ptr =  new CartesianTrajectory;
   *trj_ptr = g->trajectory;
-  CartesianTrajectoryConstPtr trj_cptr = CartesianTrajectoryConstPtr(trj_ptr);
-  port_cartesian_trajectory_command_.write(trj_cptr);
+  
+  
+  bool ok = true;
 
-  gh.setAccepted();
-  active_goal_ = gh;
+  RTT::TaskContext::PeerList peers = this->getPeerList();
+  for (size_t i = 0; i < peers.size(); i++) {
+    RTT::Logger::log(RTT::Logger::Debug) << "Starting peer : " << peers[i] << RTT::endlog();
+    if(!this->getPeer(peers[i])->isRunning())
+      ok = ok && this->getPeer(peers[i])->start();
+  }
+
+  if (ok) {
+    CartesianTrajectoryConstPtr trj_cptr = CartesianTrajectoryConstPtr(trj_ptr);
+
+    port_cartesian_trajectory_command_.write(trj_cptr);
+
+    gh.setAccepted();
+    active_goal_ = gh;
+  } else {
+    RTT::Logger::log(RTT::Logger::Error) << "peer did not start : " << RTT::endlog();
+    gh.setRejected();
+    active_goal_.setCanceled();
+  }
 }
 
 void CartesianTrajectoryAction::cancelCB(GoalHandle gh) {
