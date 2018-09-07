@@ -88,32 +88,55 @@ void CartesianInterpolator::updateHook() {
     old_point_ = setpoint_;
     last_point_not_set_ = true;
     trajectory_active_ = true;
+    RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: received new trajectory." << RTT::endlog();
   }
 
   ros::Time now = rtt_rosclock::host_now();
-  if (trajectory_active_ && trajectory_ && (trajectory_->header.stamp < now)) {
-    for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
-      ros::Time trj_time = trajectory_->header.stamp
-          + trajectory_->points[trajectory_ptr_].time_from_start;
-      if (trj_time > now) {
-        break;
+  if (trajectory_active_ && trajectory_)
+  {
+    if (trajectory_->header.stamp < now)
+    {
+      // find current trajectory point regarding current time
+      for (; trajectory_ptr_ < trajectory_->points.size(); trajectory_ptr_++) {
+        ros::Time trj_time = trajectory_->header.stamp
+            + trajectory_->points[trajectory_ptr_].time_from_start;
+        // find first trajectory point in the future
+        if (trj_time > now) {
+          RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: point " << trajectory_ptr_ << " at trj_time " 
+                                               << trj_time.toSec() << " > now (" 
+                                               << now.toSec() << ") will be used" << RTT::endlog();
+          break;
+        }
+        if (trajectory_ptr_ + 1 == trajectory_->points.size())
+        {
+          RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: all points in the past, last point at trj_time " 
+                                               << trj_time.toSec() << " < now (" 
+                                               << now.toSec() << ")" << RTT::endlog();
+        }
       }
-    }
+      
 
-    if (trajectory_ptr_ < trajectory_->points.size()) {
-      if (trajectory_ptr_ == 0) {
-        cartesian_trajectory_msgs::CartesianTrajectoryPoint p0;
-        p0.time_from_start.fromSec(0.0);
-        p0.pose = old_point_;
-        setpoint_ = interpolate(p0, trajectory_->points[trajectory_ptr_], now);
-      } else {
-        setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
-                                trajectory_->points[trajectory_ptr_], now);
+      if (trajectory_ptr_ < trajectory_->points.size()) {
+        RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: interpolating, idx: " << trajectory_ptr_ << RTT::endlog();
+        if (trajectory_ptr_ == 0) {
+          cartesian_trajectory_msgs::CartesianTrajectoryPoint p0;
+          p0.time_from_start.fromSec(0.0);
+          p0.pose = old_point_;
+          setpoint_ = interpolate(p0, trajectory_->points[trajectory_ptr_], now);
+        } else {
+          setpoint_ = interpolate(trajectory_->points[trajectory_ptr_ - 1],
+                                  trajectory_->points[trajectory_ptr_], now);
+        }
+      } else if (last_point_not_set_ && trajectory_->points.size() > 0) {
+        setpoint_ = trajectory_->points[trajectory_->points.size() - 1].pose;
+        last_point_not_set_ = false;
+        RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: end point reached : " << RTT::endlog();
       }
-    } else if (last_point_not_set_ && trajectory_->points.size() > 0) {
-      setpoint_ = trajectory_->points[trajectory_->points.size() - 1].pose;
-      last_point_not_set_ = false;
     }
+    else
+    {
+      RTT::Logger::log(RTT::Logger::Debug) << "Interpolator: trajectory time in the future" << RTT::endlog();
+    } 
   }
   port_cartesian_command_.write(setpoint_);
 }

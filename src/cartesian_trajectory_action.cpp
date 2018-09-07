@@ -84,6 +84,8 @@ void CartesianTrajectoryAction::updateHook() {
       port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
       cartesian_trajectory_msgs::CartesianTrajectoryResult res;
       res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      RTT::Logger::log(RTT::Logger::Debug) << "Path tolerance violated "
+                                           << RTT::endlog();
       active_goal_.setAborted(res);
     }
 
@@ -94,14 +96,17 @@ void CartesianTrajectoryAction::updateHook() {
       port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
       cartesian_trajectory_msgs::CartesianTrajectoryResult res;
       res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+      RTT::Logger::log(RTT::Logger::Debug) << "Wrench constraints violated "
+                                           << RTT::endlog();
       active_goal_.setAborted(res);
     }
-
 
     // TODO(konradb3): check goal constraint.
     size_t last_point = g->trajectory.points.size() - 1;
 
     if ((g->trajectory.header.stamp + g->trajectory.points[last_point].time_from_start) < now) {
+      RTT::Logger::log(RTT::Logger::Debug) << "Goal succeeded"
+                                           << RTT::endlog();
       active_goal_.setSucceeded();
     }
   }
@@ -167,31 +172,54 @@ bool CartesianTrajectoryAction::checkWrenchTolerance(geometry_msgs::Wrench msr, 
 }
 
 void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
+  
+  Goal g = gh.getGoal();
+  cartesian_trajectory_msgs::CartesianTrajectoryResult res;
+  ros::Time now = rtt_rosclock::host_now();
+  
+  // check timing
+  if (g->trajectory.header.stamp.toSec() !=0 )
+  {
+    if (g->trajectory.header.stamp < now) {
+      RTT::Logger::log(RTT::Logger::Error) << "Old header timestamp"
+                                         << RTT::endlog();
+      res.error_code =
+      cartesian_trajectory_msgs::CartesianTrajectoryResult::OLD_HEADER_TIMESTAMP;
+      gh.setRejected(res, "old timestamp");
+      return;
+    }
+  }
+
   // cancel active goal
   RTT::Logger::log(RTT::Logger::Debug) << "Received goal " << RTT::endlog();
   if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
     active_goal_.setCanceled();
     RTT::Logger::log(RTT::Logger::Debug) << "Cancelling current goal" << RTT::endlog();
   }
-
-  Goal g = gh.getGoal();
-
+  
   CartesianTrajectory* trj_ptr =  new CartesianTrajectory;
   *trj_ptr = g->trajectory;
-  
-  
+    
+  // consider timestamp at 0 means now
+  if (g->trajectory.header.stamp.toSec() ==0 )
+  {
+    trj_ptr->header.stamp = now;
+  }
+
   bool ok = true;
 
   RTT::TaskContext::PeerList peers = this->getPeerList();
   for (size_t i = 0; i < peers.size(); i++) {
-    RTT::Logger::log(RTT::Logger::Debug) << "Starting peer : " << peers[i] << RTT::endlog();
     if(!this->getPeer(peers[i])->isRunning())
+    {
+      RTT::Logger::log(RTT::Logger::Debug) << "Starting peer : " << peers[i] << RTT::endlog();
       ok = ok && this->getPeer(peers[i])->start();
+    }
   }
 
   if (ok) {
     CartesianTrajectoryConstPtr trj_cptr = CartesianTrajectoryConstPtr(trj_ptr);
-
+    // send the trajectory out
     port_cartesian_trajectory_command_.write(trj_cptr);
 
     gh.setAccepted();
