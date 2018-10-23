@@ -189,6 +189,17 @@ void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
       return;
     }
   }
+  
+  // check trajectory
+  if (g->trajectory.points.size() == 0 )
+  {
+    RTT::Logger::log(RTT::Logger::Error) << "Empty trajectory"
+                                         << RTT::endlog();
+      res.error_code =
+      cartesian_trajectory_msgs::CartesianTrajectoryResult::INVALID_GOAL;
+      gh.setRejected(res, "empty trajectory");
+      return;
+  }
 
   // cancel active goal
   RTT::Logger::log(RTT::Logger::Debug) << "Received goal " << RTT::endlog();
