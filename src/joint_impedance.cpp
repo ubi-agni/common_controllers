@@ -220,9 +220,9 @@ void JointImpedance::updateHook() {
       mat.template triangularView<Eigen::Lower>() /= scale;
       //m_subdiag.resize(n-1);
 
-      //Eigen::internal::tridiagonalization_inplace(mat, diag, m_subdiag_, true);
+      Eigen::internal::tridiagonalization_inplace(mat, diag, m_subdiag_, true);
       // code from eigen3/Eigen/src/Eigenvalues/Tridiagonalization.h <
-      {
+      /*{
         //CoeffVectorType hCoeffs_(mat.cols()-1);
         tridiagonalization_inplace(mat,hCoeffs_);
         diag = mat.diagonal().real();
@@ -231,7 +231,7 @@ void JointImpedance::updateHook() {
         hhs.setLength(mat.rows()-1);
         hhs.setShift(1);
         hhs.template evalTo<Eigen::LimitedMatrixXd, Eigen::VectorXd >(mat, tmp_vec_);
-      }
+      }*/
       // > eigen3/Eigen/src/Eigenvalues/Tridiagonalization.h
 
       const int m_maxIterations = 30;
