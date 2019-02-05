@@ -52,6 +52,7 @@ bool CartesianTrajectoryAction::startHook() {
 void CartesianTrajectoryAction::updateHook() {
   cartesian_trajectory_msgs::CartesianTrajectory trj;
   if (port_cartesian_trajectory_.read(trj) == RTT::NewData) {
+    // TODO validate things in this incoming trj
     RTT::Logger::log(RTT::Logger::Debug) << "New trajectory point received" << RTT::endlog();
     CartesianTrajectory* trj_ptr =  new CartesianTrajectory;
     *trj_ptr = trj;
@@ -103,8 +104,8 @@ void CartesianTrajectoryAction::updateHook() {
 
     // TODO(konradb3): check goal constraint.
     size_t last_point = g->trajectory.points.size() - 1;
-
-    if ((g->trajectory.header.stamp + g->trajectory.points[last_point].time_from_start) < now) {
+    // use stored goal_time_ instead of trajectory header which might still contain zero
+    if ((goal_time_ + g->trajectory.points[last_point].time_from_start) < now) {
       RTT::Logger::log(RTT::Logger::Debug) << "Goal succeeded"
                                            << RTT::endlog();
       active_goal_.setSucceeded();
@@ -216,7 +217,7 @@ void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
   {
     trj_ptr->header.stamp = now;
   }
-
+  goal_time_ = trj_ptr->header.stamp;  // store goal time locally as the GoalHandle cannot be modified
   bool ok = true;
 
   RTT::TaskContext::PeerList peers = this->getPeerList();

@@ -19,6 +19,7 @@
 #include "cartesian_trajectory_msgs/CartesianTrajectoryAction.h"
 #include "cartesian_trajectory_msgs/CartesianTrajectoryGoal.h"
 #include "geometry_msgs/Wrench.h"
+#include "rtt_rosclock/rtt_rosclock.h"
 
 #include "rtt_actionlib/rtt_actionlib.h"
 #include "rtt_actionlib/rtt_action_server.h"
@@ -49,6 +50,7 @@ class CartesianTrajectoryAction: public RTT::TaskContext {
   RTT::InputPort<geometry_msgs::Wrench> port_cartesian_wrench_;
   rtt_actionlib::RTTActionServer<cartesian_trajectory_msgs::CartesianTrajectoryAction> as_;
   GoalHandle active_goal_;
+  ros::Time goal_time_;
 };
 
 #endif  // CARTESIAN_TRAJECTORY_ACTION_H_
