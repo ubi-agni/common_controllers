@@ -51,6 +51,8 @@ bool CartesianTrajectoryAction::startHook() {
 
 void CartesianTrajectoryAction::updateHook() {
   cartesian_trajectory_msgs::CartesianTrajectory trj;
+  cartesian_trajectory_msgs::CartesianTrajectoryResult res;
+
   if (port_cartesian_trajectory_.read(trj) == RTT::NewData) {
     // TODO validate things in this incoming trj
     RTT::Logger::log(RTT::Logger::Debug) << "New trajectory point received" << RTT::endlog();
@@ -64,9 +66,8 @@ void CartesianTrajectoryAction::updateHook() {
   if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
     cartesian_trajectory_msgs::CartesianTrajectoryFeedback feedback;
     Eigen::Affine3d actual, desired, error;
-
-    ros::Time now = rtt_rosclock::host_now();
-
+    
+    // compute error and prepare feedback
     port_cartesian_position_.read(feedback.actual);
     port_cartesian_position_command_.read(feedback.desired);
 
@@ -74,55 +75,83 @@ void CartesianTrajectoryAction::updateHook() {
     tf::poseMsgToEigen(feedback.desired, desired);
 
     error = actual.inverse() * desired;
-
     tf::poseEigenToMsg(error, feedback.error);
-    feedback.header.stamp = now;
-    active_goal_.publishFeedback(feedback);
 
+    ros::Time now = rtt_rosclock::host_now();
     Goal g = active_goal_.getGoal();
-
-    if (!checkTolerance(error, g->path_tolerance)) {
-      port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
-      cartesian_trajectory_msgs::CartesianTrajectoryResult res;
-      res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-      RTT::Logger::log(RTT::Logger::Debug) << "Path tolerance violated "
-                                           << RTT::endlog();
-      active_goal_.setAborted(res);
-    }
-
-    geometry_msgs::Wrench ft;
-    port_cartesian_wrench_.read(ft);
-
-    if (!checkWrenchTolerance(ft, g->wrench_constraint)) {
-      port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
-      cartesian_trajectory_msgs::CartesianTrajectoryResult res;
-      res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
-      RTT::Logger::log(RTT::Logger::Debug) << "Wrench constraints violated "
-                                           << RTT::endlog();
-      active_goal_.setAborted(res);
-    }
-
-    // TODO(konradb3): check goal constraint.
+    std::string error_message;
+    // if trajectory is finished
     size_t last_point = g->trajectory.points.size() - 1;
     // use stored goal_time_ instead of trajectory header which might still contain zero
     if ((goal_time_ + g->trajectory.points[last_point].time_from_start) < now) {
-      RTT::Logger::log(RTT::Logger::Debug) << "Goal succeeded"
-                                           << RTT::endlog();
-      active_goal_.setSucceeded();
+      // check goal tolerance
+      if (!checkTolerance(error, g->goal_tolerance, &error_message)) {
+        res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
+        RTT::Logger::log(RTT::Logger::Debug) << "Goal tolerance violated" << RTT::endlog();
+        active_goal_.setAborted(res, error_message.c_str());
+      }
+      else {
+        res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::SUCCESSFUL;
+        RTT::Logger::log(RTT::Logger::Debug) << "Goal succeeded" << RTT::endlog();
+        active_goal_.setSucceeded(res, "");
+      }
+    }
+    else
+    {
+      // send feedback
+      feedback.header.stamp = now;
+      active_goal_.publishFeedback(feedback);
+
+      // check path tolerance
+      if (!checkTolerance(error, g->path_tolerance, &error_message)) {
+        port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
+        res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+        RTT::Logger::log(RTT::Logger::Debug) << "Path tolerance violated "
+                                             << RTT::endlog();
+        active_goal_.setAborted(res, error_message.c_str());
+      }
+
+      // check force tolerance
+      geometry_msgs::Wrench ft;
+      port_cartesian_wrench_.read(ft);
+
+      if (!checkWrenchTolerance(ft, g->wrench_constraint)) {
+        port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
+        res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
+        RTT::Logger::log(RTT::Logger::Debug) << "Wrench constraints violated "
+                                             << RTT::endlog();
+        active_goal_.setAborted(res, "wrench tolerance violated");
+      }
     }
   }
 }
 
-bool CartesianTrajectoryAction::checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol) {
+bool CartesianTrajectoryAction::checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol, std::string *err_msg) {
+  std::stringstream ss;
   if ((tol.position.x > 0.0) && (fabs(err.translation().x()) > tol.position.x)) {
+    if (err_msg)
+    {
+      ss << "position error x = " << fabs(err.translation().x()) << " > tolerated value = " << tol.position.x;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
   if ((tol.position.y > 0.0) && (fabs(err.translation().y()) > tol.position.y)) {
+    if (err_msg)
+    {
+      ss << "position error y = " << fabs(err.translation().y()) << " > tolerated value = " << tol.position.y;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
   if ((tol.position.z > 0.0) && (fabs(err.translation().z()) > tol.position.z)) {
+    if (err_msg)
+    {
+      ss << "position error z = " << fabs(err.translation().z()) << " > tolerated value = " << tol.position.z;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
@@ -130,14 +159,29 @@ bool CartesianTrajectoryAction::checkTolerance(Eigen::Affine3d err, cartesian_tr
   Eigen::Vector3d rot = ax.axis() * ax.angle();
 
   if ((tol.rotation.x > 0.0) && (fabs(rot(0)) > tol.rotation.x)) {
+    if (err_msg)
+    {
+      ss << "orientation error x = " << fabs(rot(0)) << " > tolerated value = " << tol.rotation.x;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
   if ((tol.rotation.y > 0.0) && (fabs(rot(1)) > tol.rotation.y)) {
+    if (err_msg)
+    {
+      ss << "orientation error y = " << fabs(rot(1)) << " > tolerated value = " << tol.rotation.y;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
   if ((tol.rotation.z > 0.0) && (fabs(rot(2)) > tol.rotation.z)) {
+    if (err_msg)
+    {
+      ss << "orientation error z = " << fabs(rot(2)) << " > tolerated value = " << tol.rotation.z;
+      *err_msg = ss.str();
+    }
     return false;
   }
 
@@ -237,8 +281,9 @@ void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
     gh.setAccepted();
     active_goal_ = gh;
   } else {
+    res.error_code = -5;
     RTT::Logger::log(RTT::Logger::Error) << "peer did not start : " << RTT::endlog();
-    gh.setRejected();
+    gh.setRejected(res, "interpolator did not start");
     active_goal_.setCanceled();
   }
 }

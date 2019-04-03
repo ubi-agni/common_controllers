@@ -40,7 +40,7 @@ class CartesianTrajectoryAction: public RTT::TaskContext {
   void goalCB(GoalHandle gh);
   void cancelCB(GoalHandle gh);
 
-  bool checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol);
+  bool checkTolerance(Eigen::Affine3d err, cartesian_trajectory_msgs::CartesianTolerance tol, std::string *err_msg=NULL);
   bool checkWrenchTolerance(geometry_msgs::Wrench msr, geometry_msgs::Wrench tol);
 
   RTT::OutputPort<cartesian_trajectory_msgs::CartesianTrajectoryConstPtr> port_cartesian_trajectory_command_;
