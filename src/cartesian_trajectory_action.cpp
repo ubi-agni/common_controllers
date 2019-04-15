@@ -68,9 +68,14 @@ void CartesianTrajectoryAction::updateHook() {
     Eigen::Affine3d actual, desired, error;
     
     // compute error and prepare feedback
+    bool monitoring_inhibited = false;
+    // compute the error but use for path checking only for new data
+    if (port_cartesian_position_command_.read(feedback.desired) != RTT::NewData)
+    {
+        monitoring_inhibited = true;
+        // RTT::Logger::log(RTT::Logger::Debug) << "monitoring inhibited due to no new cmd data" << RTT::endlog();
+    }
     port_cartesian_position_.read(feedback.actual);
-    port_cartesian_position_command_.read(feedback.desired);
-
     tf::poseMsgToEigen(feedback.actual, actual);
     tf::poseMsgToEigen(feedback.desired, desired);
 
@@ -86,6 +91,7 @@ void CartesianTrajectoryAction::updateHook() {
     if ((goal_time_ + g->trajectory.points[last_point].time_from_start) < now) {
       // check goal tolerance
       if (!checkTolerance(error, g->goal_tolerance, &error_message)) {
+        port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
         res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::GOAL_TOLERANCE_VIOLATED;
         RTT::Logger::log(RTT::Logger::Debug) << "Goal tolerance violated" << RTT::endlog();
         active_goal_.setAborted(res, error_message.c_str());
@@ -103,7 +109,7 @@ void CartesianTrajectoryAction::updateHook() {
       active_goal_.publishFeedback(feedback);
 
       // check path tolerance
-      if (!checkTolerance(error, g->path_tolerance, &error_message)) {
+      if (!monitoring_inhibited && !checkTolerance(error, g->path_tolerance, &error_message)) {
         port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
         res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
         RTT::Logger::log(RTT::Logger::Debug) << "Path tolerance violated "
@@ -115,7 +121,7 @@ void CartesianTrajectoryAction::updateHook() {
       geometry_msgs::Wrench ft;
       port_cartesian_wrench_.read(ft);
 
-      if (!checkWrenchTolerance(ft, g->wrench_constraint)) {
+      if (!monitoring_inhibited && !checkWrenchTolerance(ft, g->wrench_constraint)) {
         port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
         res.error_code = cartesian_trajectory_msgs::CartesianTrajectoryResult::PATH_TOLERANCE_VIOLATED;
         RTT::Logger::log(RTT::Logger::Debug) << "Wrench constraints violated "
@@ -249,6 +255,7 @@ void CartesianTrajectoryAction::goalCB(GoalHandle gh) {
   // cancel active goal
   RTT::Logger::log(RTT::Logger::Debug) << "Received goal " << RTT::endlog();
   if (active_goal_.isValid() && (active_goal_.getGoalStatus().status == actionlib_msgs::GoalStatus::ACTIVE)) {
+    port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
     active_goal_.setCanceled();
     RTT::Logger::log(RTT::Logger::Debug) << "Cancelling current goal" << RTT::endlog();
   }
