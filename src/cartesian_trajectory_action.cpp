@@ -80,6 +80,8 @@ void CartesianTrajectoryAction::updateHook() {
     tf::poseMsgToEigen(feedback.desired, desired);
 
     error = actual.inverse() * desired;
+    // separate the translation error to remain in the original frame of reference and not the local one
+    error.translation() = actual.translation() - desired.translation();
     tf::poseEigenToMsg(error, feedback.error);
 
     ros::Time now = rtt_rosclock::host_now();
