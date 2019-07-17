@@ -25,7 +25,7 @@ CartesianTrajectoryAction::CartesianTrajectoryAction(const std::string& name) :
     port_cartesian_wrench_("CartesianWrench_INPORT") {
 
   this->ports()->addPort(port_cartesian_trajectory_command_);
-  this->ports()->addEventPort(port_cartesian_trajectory_);
+  this->ports()->addEventPort(port_cartesian_trajectory_).doc("eventport");
   this->ports()->addPort(port_cartesian_position_);
   this->ports()->addPort(port_cartesian_position_command_);
   this->ports()->addPort(port_cartesian_wrench_);
