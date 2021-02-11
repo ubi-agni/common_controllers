@@ -87,6 +87,12 @@ void CartesianTrajectoryAction::updateHook() {
     ros::Time now = rtt_rosclock::host_now();
     Goal g = active_goal_.getGoal();
     std::string error_message;
+
+    // always send feedback send feedback
+    feedback.header.stamp = now;
+    active_goal_.publishFeedback(feedback);
+
+      
     // if trajectory is finished
     size_t last_point = g->trajectory.points.size() - 1;
     // use stored goal_time_ instead of trajectory header which might still contain zero
@@ -106,10 +112,6 @@ void CartesianTrajectoryAction::updateHook() {
     }
     else
     {
-      // send feedback
-      feedback.header.stamp = now;
-      active_goal_.publishFeedback(feedback);
-
       // check path tolerance
       if (!monitoring_inhibited && !checkTolerance(error, g->path_tolerance, &error_message)) {
         port_cartesian_trajectory_command_.write(CartesianTrajectoryConstPtr());
